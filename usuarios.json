@@ -1,0 +1,92 @@
+[
+    {
+        "id": 1,
+        "nombre": "Lucía Torres",
+        "email": "lucía.torres@ejemplo.com",
+        "telefono": "+57 357-5412481",
+        "direccion": "Calle 27 #98-21",
+        "rol": "Administrador",
+        "clave": "iqK2V%G0y8"
+    },
+    {
+        "id": 2,
+        "nombre": "Lucía Castro",
+        "email": "lucía.castro@empresa.org",
+        "telefono": "+57 318-9531353",
+        "direccion": "Calle 79 #67-94",
+        "rol": "Usuario",
+        "clave": "zoYk$au79#"
+    },
+    {
+        "id": 3,
+        "nombre": "Andrés Rodríguez",
+        "email": "andrés.rodríguez@ejemplo.com",
+        "telefono": "+57 322-7674004",
+        "direccion": "Calle 45 #53-74",
+        "rol": "Usuario",
+        "clave": "0uXPN%SP@v"
+    },
+    {
+        "id": 4,
+        "nombre": "Martín Hernández",
+        "email": "martín.hernández@ejemplo.com",
+        "telefono": "+57 327-6387913",
+        "direccion": "Calle 43 #93-32",
+        "rol": "Invitado",
+        "clave": "Eq$xL5GF1*"
+    },
+    {
+        "id": 5,
+        "nombre": "Martín Castro",
+        "email": "martín.castro@empresa.org",
+        "telefono": "+57 376-1812802",
+        "direccion": "Calle 47 #53-76",
+        "rol": "Editor",
+        "clave": "AA@3i#ljg@"
+    },
+    {
+        "id": 6,
+        "nombre": "Lucía Pérez",
+        "email": "lucía.pérez@empresa.org",
+        "telefono": "+57 378-8580364",
+        "direccion": "Calle 78 #16-49",
+        "rol": "Editor",
+        "clave": "KL^k0JPH!T"
+    },
+    {
+        "id": 7,
+        "nombre": "Carlos Martínez",
+        "email": "carlos.martínez@correo.com",
+        "telefono": "+57 390-8809152",
+        "direccion": "Calle 26 #65-69",
+        "rol": "Usuario",
+        "clave": "zk5u%5n7gH"
+    },
+    {
+        "id": 8,
+        "nombre": "Andrés Vargas",
+        "email": "andrés.vargas@correo.com",
+        "telefono": "+57 393-5282815",
+        "direccion": "Calle 62 #17-44",
+        "rol": "Administrador",
+        "clave": "1xJi%thgzV"
+    },
+    {
+        "id": 9,
+        "nombre": "Martín Ramírez",
+        "email": "martín.ramírez@correo.com",
+        "telefono": "+57 389-5443566",
+        "direccion": "Calle 57 #74-74",
+        "rol": "Usuario",
+        "clave": "BvFQAuC*$y"
+    },
+    {
+        "id": 10,
+        "nombre": "Javier Pérez",
+        "email": "javier.pérez@empresa.org",
+        "telefono": "+57 339-3313677",
+        "direccion": "Calle 13 #70-51",
+        "rol": "Editor",
+        "clave": "M!vjHBIW$z"
+    }
+]

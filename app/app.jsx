@@ -16,6 +16,90 @@ const customDarkTheme = {
   },
 };
 
+// Array de objetos con la información de cada pantalla
+const screenData = [
+  {
+    id: 1,
+    title: "Inicio de sesión",
+    icon: "lock",
+    color: "#f48fb1",
+    path: "inicio-sesion",
+    description: null
+  },
+  {
+    id: 2,
+    title: "Pantalla principal",
+    icon: "home",
+    color: "#82b1ff",
+    path: "pantalla-principal",
+    description: null
+  },
+  {
+    id: 3,
+    title: "Lista de elementos",
+    icon: "format-list-bulleted",
+    color: "#ffca28",
+    path: "lista-elementos",
+    description: null
+  },
+  {
+    id: 4,
+    title: "Detalle de elemento",
+    icon: "information-outline",
+    color: "#ef5350",
+    path: "detalle-elemento",
+    description: null
+  },
+  {
+    id: 5,
+    title: "Formulario de registro",
+    icon: "view-list",
+    color: "#9575cd",
+    path: "formulario-registro",
+    description: null
+  },
+  {
+    id: 6,
+    title: "Configuración",
+    icon: "cog",
+    color: "#90a4ae",
+    path: "configuracion",
+    description: null
+  },
+  {
+    id: 7,
+    title: "Lista de usuarios",
+    icon: "account",
+    color: "#64b5f6",
+    path: "lista-usuarios",
+    description: null
+  },
+  {
+    id: 8,
+    title: "Lista de servicios",
+    icon: "format-list-bulleted",
+    color: "#90a4ae",
+    path: "lista-servicios",
+    description: null
+  },
+  {
+    id: 9,
+    title: "Conocimientos previos",
+    icon: "school",
+    color: "#4caf50",
+    path: "conocimientos-previos",
+    description: "Conceptos fundamentales"
+  },
+  {
+    id: 10,
+    title: "Autor",
+    icon: "account-circle",
+    color: "#2979FF",
+    path: "autor",
+    description: "Información del desarrollador"
+  }
+];
+
 export default function App() {
   return (
     <PaperProvider theme={customDarkTheme}>
@@ -37,27 +121,20 @@ function MainScreen() {
           headerTintColor: '#fff',
         }}
       />
-
+      
       <ScrollView style={{ backgroundColor: "#121420" }}>
         <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
-
-          {/* List Items */}
-          <ListItem title="Inicio de sesión" icon="lock" color="#f48fb1" path="inicio-sesion" />
-          <ListItem title="Pantalla principal" icon="home" color="#82b1ff" path="pantalla-principal" />
-          <ListItem title="Lista de elementos" icon="format-list-bulleted" color="#ffca28" path="lista-elementos" />
-          <ListItem title="Detalle de elemento" icon="information-outline" color="#ef5350" path="detalle-elemento" />
-          <ListItem title="Formulario de registro" icon="view-list" color="#9575cd" path="formulario-registro" />
-          <ListItem title="Configuración" icon="cog" color="#90a4ae" path="configuracion" />
-          <ListItem title="Perfil de usuario" icon="account" color="#64b5f6" path="perfil-usuario" />
-          <ListItem title="Lista de servicios" icon="format-list-bulleted" color="#90a4ae" path="lista-servicios" />
-          <ListItem
-            title="Autor"
-            description="Información del desarrollador"
-            icon="account-circle"
-            color="#2979FF"
-            path="autor"
-          />
-
+          {/* Renderizar los elementos del array */}
+          {screenData.map((item) => (
+            <ListItem
+              key={item.id}
+              title={item.title}
+              description={item.description}
+              icon={item.icon}
+              color={item.color}
+              path={item.path}
+            />
+          ))}
         </View>
       </ScrollView>
     </>

@@ -1,106 +1,202 @@
-import React from 'react';
-import { ScrollView, View, useColorScheme } from 'react-native';
-import { Text, TextInput, Button, MD3DarkTheme, Provider as PaperProvider } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ScrollView, View, Alert } from 'react-native';
+import { Text, TextInput, Button, PaperProvider, MD3DarkTheme } from 'react-native-paper';
+import { useRouter, Stack } from 'expo-router';
 
-export default function Configuracion() {
-  const colorScheme = useColorScheme(); // Detecta si el sistema está en modo oscuro
+// Importar usuarios.json (ajusta la ruta según tu estructura real)
+import usuarios from '../usuarios.json';
+
+// Tema oscuro personalizado
+const customDarkTheme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    background: '#121420',
+    surface: '#1e1e2e',
+    primary: '#bb86fc',
+    text: '#ffffff',
+    onSurface: '#ffffff',
+    outline: '#64748b',
+    onSurfaceVariant: '#9ca3af',
+  },
+};
+
+export default function InicioSesion() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // Tema oscuro personalizado
-  const darkTheme = {
-    ...MD3DarkTheme,
-    colors: {
-      ...MD3DarkTheme.colors,
-      primary: '#6ebfd8',
-      background: '#121212',
-      surface: '#1e1e1e',
-      onSurface: '#ffffff',
-      text: '#ffffff',
-      outline: '#ffffff',
-    },
+  // Validar datos de inicio de sesión
+  const validateLogin = () => {
+    setIsLoading(true);
+
+    // Buscar usuario por email ignorando mayúsculas
+    const usuario = usuarios.find(
+      user => user.email.toLowerCase() === email.trim().toLowerCase()
+    );
+
+    setTimeout(() => {
+      setIsLoading(false);
+
+      if (!usuario) {
+        Alert.alert(
+          'Error de autenticación',
+          'El usuario no existe.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
+
+      if (usuario.clave !== password) {
+        Alert.alert(
+          'Error de autenticación',
+          'Datos de acceso incorrecto.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
+
+      // Datos correctos
+      Alert.alert(
+        'Acceso exitoso',
+        `¡Bienvenido/a ${usuario.nombre}!\nRol: ${usuario.rol}`,
+        [
+          {
+            text: 'Continuar',
+            onPress: () => router.push('pantalla-principal')
+          }
+        ]
+      );
+    }, 1000);
   };
 
   return (
-    <PaperProvider theme={darkTheme}>
-      <ScrollView style={{ backgroundColor: darkTheme.colors.background }}>
-        <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
-          <Text
-            variant="headlineLarge"
-            style={{
-              paddingHorizontal: 20,
-              paddingTop: 100,
-              fontWeight: 'bold',
-              textAlign: 'center',
-              color: darkTheme.colors.text,
-            }}
-          >
-            INICIAR SESIÓN
-          </Text>
+    <PaperProvider theme={customDarkTheme}>
+      <>
+        <Stack.Screen
+          options={{
+            title: 'Iniciar Sesión',
+            headerShown: true,
+            headerStyle: { backgroundColor: '#121420' },
+            headerTintColor: '#fff',
+          }}
+        />
 
-          <TextInput
-            label="Correo electrónico"
-            mode="outlined"
-            style={{ marginBottom: 10 }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+        <ScrollView style={{ backgroundColor: customDarkTheme.colors.background }}>
+          <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+            <Text
+              variant="headlineLarge"
+              style={{
+                paddingHorizontal: 20,
+                paddingTop: 60,
+                paddingBottom: 40,
+                fontWeight: 'bold',
+                textAlign: 'center',
+                color: customDarkTheme.colors.text,
+              }}
+            >
+              INICIAR SESIÓN
+            </Text>
 
-          <TextInput
-            label="Contraseña"
-            mode="outlined"
-            secureTextEntry
-            style={{ marginBottom: 10 }}
-          />
+            <TextInput
+              label="Correo electrónico"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              style={{ marginBottom: 15, backgroundColor: customDarkTheme.colors.surface }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              theme={{
+                colors: {
+                  primary: customDarkTheme.colors.primary,
+                  onSurface: customDarkTheme.colors.text,
+                  outline: customDarkTheme.colors.outline,
+                }
+              }}
+            />
 
-          <Button
-            onPress={() => router.push("formulario-registro")}
-            theme={{ colors: { primary: '#ff4081' } }}
-            style={{ marginBottom: 20 }}
-            compact
-          >
-            ¿Olvidaste tu contraseña?
-          </Button>
+            <TextInput
+              label="Contraseña"
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              secureTextEntry
+              style={{ marginBottom: 20, backgroundColor: customDarkTheme.colors.surface }}
+              theme={{
+                colors: {
+                  primary: customDarkTheme.colors.primary,
+                  onSurface: customDarkTheme.colors.text,
+                  outline: customDarkTheme.colors.outline,
+                }
+              }}
+            />
 
-          <Button
-            mode="contained"
-            onPress={() => console.log('Iniciar sesión')}
-            style={{
-              marginTop: 10,
-              padding: 5,
-              backgroundColor: '#1e01fa',
-            }}
-          >
-            Iniciar sesión
-          </Button>
+            <Button
+              onPress={() => router.push("formulario-registro")}
+              mode="text"
+              style={{ marginBottom: 20, alignSelf: 'flex-end' }}
+              labelStyle={{ color: '#f48fb1' }}
+            >
+              ¿Olvidaste tu contraseña?
+            </Button>
 
-          <Button
-            icon="google"
-            mode="contained"
-            onPress={() => console.log('Iniciar con Google')}
-            style={{
-              marginTop: 10,
-              padding: 5,
-              backgroundColor: '#6ebfd8',
-            }}
-          >
-            Iniciar sesión con Google
-          </Button>
+            <Button
+              mode="contained"
+              onPress={validateLogin}
+              loading={isLoading}
+              disabled={!email.trim() || !password.trim() || isLoading}
+              style={{
+                marginTop: 10,
+                padding: 8,
+                backgroundColor: customDarkTheme.colors.primary,
+                borderRadius: 10,
+              }}
+              labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+            >
+              {isLoading ? 'Validando...' : 'Iniciar sesión'}
+            </Button>
 
-          <Button
-            icon="apple"
-            mode="contained"
-            onPress={() => console.log('Iniciar con Apple')}
-            style={{
-              marginTop: 10,
-              padding: 5,
-              backgroundColor: '#6ebfd8',
-            }}
-          >
-            Iniciar sesión con Apple
-          </Button>
-        </View>
-      </ScrollView>
+            <View style={{ marginTop: 30 }}>
+              <Text style={{
+                textAlign: 'center',
+                color: customDarkTheme.colors.onSurfaceVariant,
+                marginBottom: 15
+              }}>
+                O continúa con
+              </Text>
+
+              <Button
+                icon="google"
+                mode="contained"
+                onPress={() => console.log('Iniciar con Google')}
+                style={{
+                  marginBottom: 10,
+                  padding: 5,
+                  backgroundColor: '#ef5350',
+                  borderRadius: 10,
+                }}
+              >
+                Iniciar sesión con Google
+              </Button>
+
+              <Button
+                icon="apple"
+                mode="contained"
+                onPress={() => console.log('Iniciar con Apple')}
+                style={{
+                  marginBottom: 10,
+                  padding: 5,
+                  backgroundColor: '#424242',
+                  borderRadius: 10,
+                }}
+              >
+                Iniciar sesión con Apple
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+      </>
     </PaperProvider>
   );
 }
