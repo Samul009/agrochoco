@@ -1,352 +1,154 @@
 [
-    {
-        "id": 1,
-        "titulo": "Portátil Económico",
-        "descripcion": "Portátil Económico con la mejor relación calidad-precio del mercado. Ofrece un equilibrio perfecto entre rendimiento, durabilidad y estilo, adaptándose a las necesidades de estudiantes y profesionales.",
-        "imagen": "https://source.unsplash.com/400x300/?portátil,1",
-        "mostrarTodo": false
+  {
+    "id": 1,
+    "nombre": "Mango",
+    "categoria": "Fruta tropical",
+    "descripcion": "Fruta tropical dulce y jugosa, rica en vitaminas A y C. Ideal para consumo fresco, jugos y postres.",
+    "imagen": "🥭",
+    "estado": "En cosecha",
+    "ubicacion_cosecha": "Valle del Cauca, Cundinamarca, Tolima",
+    "temporada_cosecha": "Marzo - Junio",
+    "metodo_cosecha": "Manual con escaleras y varas recolectoras. Se cosecha cuando la fruta está madura pero firme.",
+    "produccion_toneladas": "850 toneladas por hectárea",
+    "precios": {
+      "libra": 2500,
+      "bulto": 85000,
+      "camion": 2800000
     },
-    {
-        "id": 2,
-        "titulo": "Tablet Premium",
-        "descripcion": "Tablet Premium diseñado para brindar una experiencia superior. Incluye componentes de última generación que optimizan la velocidad, calidad de imagen y facilidad de uso.",
-        "imagen": "https://source.unsplash.com/400x300/?tablet,2",
-        "mostrarTodo": false
+    "disponible": true,
+    "nuevo": true
+  },
+  {
+    "id": 2,
+    "nombre": "Tomate",
+    "categoria": "Hortaliza",
+    "descripcion": "Hortaliza versátil rica en licopeno y vitamina C. Esencial en la cocina colombiana para salsas y ensaladas.",
+    "imagen": "🍅",
+    "estado": "Disponible hasta mayo",
+    "ubicacion_cosecha": "Boyacá, Cundinamarca, Norte de Santander",
+    "temporada_cosecha": "Todo el año",
+    "metodo_cosecha": "Manual en racimos cuando alcanzan color rojizo uniforme. Recolección cada 3-4 días.",
+    "produccion_toneladas": "120 toneladas por hectárea",
+    "precios": {
+      "libra": 1800,
+      "bulto": 65000,
+      "camion": 1950000
     },
-    {
-        "id": 3,
-        "titulo": "Auriculares Portátil",
-        "descripcion": "Auriculares Portátil con tecnología de última generación. Compatible con los estándares más recientes para asegurar una conexión estable y rápida en cualquier entorno.",
-        "imagen": "https://source.unsplash.com/400x300/?auriculares,3",
-        "mostrarTodo": false
+    "disponible": true,
+    "nuevo": false
+  },
+  {
+    "id": 3,
+    "nombre": "Maíz",
+    "categoria": "Cereal",
+    "descripcion": "Cereal básico en la alimentación. Usado para consumo humano, animal y procesamiento industrial.",
+    "imagen": "🌽",
+    "estado": "Producción alta",
+    "ubicacion_cosecha": "Córdoba, Sucre, César, Meta",
+    "temporada_cosecha": "Abril - Julio, Octubre - Diciembre",
+    "metodo_cosecha": "Mecánica con cosechadoras cuando el grano tiene 14-16% de humedad.",
+    "produccion_toneladas": "6.5 toneladas por hectárea",
+    "precios": {
+      "libra": 1200,
+      "bulto": 98000,
+      "camion": 4200000
     },
-    {
-        "id": 4,
-        "titulo": "Cámara Compacto",
-        "descripcion": "Cámara Compacto perfecto para viajes y movilidad. Su tamaño compacto y peso reducido lo convierten en el aliado ideal para quienes necesitan trabajar o entretenerse en movimiento.",
-        "imagen": "https://source.unsplash.com/400x300/?cámara,4",
-        "mostrarTodo": false
+    "disponible": true,
+    "nuevo": false
+  },
+  {
+    "id": 4,
+    "nombre": "Aguacate",
+    "categoria": "Fruta tropical",
+    "descripcion": "Fruta cremosa rica en grasas saludables, vitaminas y minerales. Muy demandada en mercados nacionales e internacionales.",
+    "imagen": "🥑",
+    "estado": "En temporada alta",
+    "ubicacion_cosecha": "Antioquia, Caldas, Quindío, Risaralda",
+    "temporada_cosecha": "Febrero - Mayo, Agosto - Octubre",
+    "metodo_cosecha": "Manual con tijeras podadoras, dejando un pedúnculo de 1cm para evitar pudrición.",
+    "produccion_toneladas": "18 toneladas por hectárea",
+    "precios": {
+      "libra": 3200,
+      "bulto": 125000,
+      "camion": 3800000
     },
-    {
-        "id": 5,
-        "titulo": "Smartwatch Inalámbrico",
-        "descripcion": "Smartwatch Inalámbrico con conectividad avanzada y gran autonomía. Permite emparejarse fácilmente con múltiples dispositivos y mantiene una señal estable a larga distancia.",
-        "imagen": "https://source.unsplash.com/400x300/?smartwatch,5",
-        "mostrarTodo": false
+    "disponible": true,
+    "nuevo": false
+  },
+  {
+    "id": 5,
+    "nombre": "Plátano",
+    "categoria": "Fruta tropical",
+    "descripcion": "Fruta básica en la dieta colombiana, rica en potasio y carbohidratos. Se consume verde o maduro.",
+    "imagen": "🍌",
+    "estado": "Disponible",
+    "ubicacion_cosecha": "Urabá, Magdalena, Meta, Casanare",
+    "temporada_cosecha": "Todo el año",
+    "metodo_cosecha": "Manual, cortando racimos completos cuando el plátano alcanza 75% de llenado.",
+    "produccion_toneladas": "35 toneladas por hectárea",
+    "precios": {
+      "libra": 1500,
+      "bulto": 45000,
+      "camion": 1800000
     },
-    {
-        "id": 6,
-        "titulo": "Monitor Ultrarrápido",
-        "descripcion": "Monitor Ultrarrápido que combina rendimiento y diseño elegante. Fabricado con materiales de alta calidad para garantizar resistencia y una apariencia profesional.",
-        "imagen": "https://source.unsplash.com/400x300/?monitor,6",
-        "mostrarTodo": false
+    "disponible": true,
+    "nuevo": false
+  },
+  {
+    "id": 6,
+    "nombre": "Café",
+    "categoria": "Grano",
+    "descripcion": "Grano aromático de exportación, orgullo de Colombia. Café de alta calidad reconocido mundialmente.",
+    "imagen": "☕",
+    "estado": "En cosecha principal",
+    "ubicacion_cosecha": "Eje Cafetero, Huila, Nariño, Cauca",
+    "temporada_cosecha": "Abril - Junio, Octubre - Diciembre",
+    "metodo_cosecha": "Manual selectiva, recolectando solo granos maduros de color rojo cereza.",
+    "produccion_toneladas": "1.8 toneladas por hectárea",
+    "precios": {
+      "libra": 8500,
+      "bulto": 280000,
+      "camion": 12500000
     },
-    {
-        "id": 7,
-        "titulo": "Teclado Resistente",
-        "descripcion": "Teclado Resistente fabricado con materiales de alta durabilidad. Resiste golpes, arañazos y condiciones adversas, asegurando una vida útil prolongada.",
-        "imagen": "https://source.unsplash.com/400x300/?teclado,7",
-        "mostrarTodo": false
+    "disponible": true,
+    "nuevo": false
+  },
+  {
+    "id": 7,
+    "nombre": "Papa",
+    "categoria": "Tubérculo",
+    "descripcion": "Tubérculo básico en la alimentación colombiana, rico en carbohidratos y vitamina C.",
+    "imagen": "🥔",
+    "estado": "Temporada baja",
+    "ubicacion_cosecha": "Boyacá, Cundinamarca, Nariño",
+    "temporada_cosecha": "Mayo - Agosto, Noviembre - Febrero",
+    "metodo_cosecha": "Mecánica o manual con azadón cuando las plantas se amarillean.",
+    "produccion_toneladas": "22 toneladas por hectárea",
+    "precios": {
+      "libra": 2200,
+      "bulto": 75000,
+      "camion": 2200000
     },
-    {
-        "id": 8,
-        "titulo": "Mouse Ligero",
-        "descripcion": "Mouse Ligero pensado para profesionales exigentes. Ofrece precisión, rapidez y una interfaz intuitiva para maximizar la productividad.",
-        "imagen": "https://source.unsplash.com/400x300/?mouse,8",
-        "mostrarTodo": false
+    "disponible": false,
+    "nuevo": false
+  },
+  {
+    "id": 8,
+    "nombre": "Arroz",
+    "categoria": "Cereal",
+    "descripcion": "Cereal fundamental en la dieta colombiana. Base de la alimentación en todas las regiones del país.",
+    "imagen": "🌾",
+    "estado": "En siembra",
+    "ubicacion_cosecha": "Tolima, Casanare, Meta, Córdoba",
+    "temporada_cosecha": "Enero - Abril, Julio - Octubre",
+    "metodo_cosecha": "Mecánica con combinadas cuando el grano tiene 20-25% de humedad.",
+    "produccion_toneladas": "7.2 toneladas por hectárea",
+    "precios": {
+      "libra": 1800,
+      "bulto": 95000,
+      "camion": 3800000
     },
-    {
-        "id": 9,
-        "titulo": "Altavoz Potente",
-        "descripcion": "Altavoz Potente con garantía de 2 años incluida. Respaldado por un servicio de atención al cliente eficiente y confiable.",
-        "imagen": "https://source.unsplash.com/400x300/?altavoz,9",
-        "mostrarTodo": false
-    },
-    {
-        "id": 10,
-        "titulo": "Impresora Avanzado",
-        "descripcion": "Impresora Avanzado ideal para uso diario y trabajo remoto. Su diseño ergonómico garantiza comodidad durante largas jornadas y su batería de alta duración permite trabajar sin interrupciones.",
-        "imagen": "https://source.unsplash.com/400x300/?impresora,10",
-        "mostrarTodo": false
-    },
-    {
-        "id": 11,
-        "titulo": "Proyector Económico",
-        "descripcion": "Proyector Económico con la mejor relación calidad-precio del mercado. Ofrece un equilibrio perfecto entre rendimiento, durabilidad y estilo, adaptándose a las necesidades de estudiantes y profesionales.",
-        "imagen": "https://source.unsplash.com/400x300/?proyector,11",
-        "mostrarTodo": false
-    },
-    {
-        "id": 12,
-        "titulo": "Router Premium",
-        "descripcion": "Router Premium diseñado para brindar una experiencia superior. Incluye componentes de última generación que optimizan la velocidad, calidad de imagen y facilidad de uso.",
-        "imagen": "https://source.unsplash.com/400x300/?router,12",
-        "mostrarTodo": false
-    },
-    {
-        "id": 13,
-        "titulo": "Disco Duro Portátil",
-        "descripcion": "Disco Duro Portátil con tecnología de última generación. Compatible con los estándares más recientes para asegurar una conexión estable y rápida en cualquier entorno.",
-        "imagen": "https://source.unsplash.com/400x300/?discoduro,13",
-        "mostrarTodo": false
-    },
-    {
-        "id": 14,
-        "titulo": "Memoria USB Compacto",
-        "descripcion": "Memoria USB Compacto perfecto para viajes y movilidad. Su tamaño compacto y peso reducido lo convierten en el aliado ideal para quienes necesitan trabajar o entretenerse en movimiento.",
-        "imagen": "https://source.unsplash.com/400x300/?memoriausb,14",
-        "mostrarTodo": false
-    },
-    {
-        "id": 15,
-        "titulo": "Teléfono Inalámbrico",
-        "descripcion": "Teléfono Inalámbrico con conectividad avanzada y gran autonomía. Permite emparejarse fácilmente con múltiples dispositivos y mantiene una señal estable a larga distancia.",
-        "imagen": "https://source.unsplash.com/400x300/?teléfono,15",
-        "mostrarTodo": false
-    },
-    {
-        "id": 16,
-        "titulo": "Portátil Ultrarrápido",
-        "descripcion": "Portátil Ultrarrápido que combina rendimiento y diseño elegante. Fabricado con materiales de alta calidad para garantizar resistencia y una apariencia profesional.",
-        "imagen": "https://source.unsplash.com/400x300/?portátil,16",
-        "mostrarTodo": false
-    },
-    {
-        "id": 17,
-        "titulo": "Tablet Resistente",
-        "descripcion": "Tablet Resistente fabricado con materiales de alta durabilidad. Resiste golpes, arañazos y condiciones adversas, asegurando una vida útil prolongada.",
-        "imagen": "https://source.unsplash.com/400x300/?tablet,17",
-        "mostrarTodo": false
-    },
-    {
-        "id": 18,
-        "titulo": "Auriculares Ligero",
-        "descripcion": "Auriculares Ligero pensado para profesionales exigentes. Ofrece precisión, rapidez y una interfaz intuitiva para maximizar la productividad.",
-        "imagen": "https://source.unsplash.com/400x300/?auriculares,18",
-        "mostrarTodo": false
-    },
-    {
-        "id": 19,
-        "titulo": "Cámara Potente",
-        "descripcion": "Cámara Potente con garantía de 2 años incluida. Respaldado por un servicio de atención al cliente eficiente y confiable.",
-        "imagen": "https://source.unsplash.com/400x300/?cámara,19",
-        "mostrarTodo": false
-    },
-    {
-        "id": 20,
-        "titulo": "Smartwatch Avanzado",
-        "descripcion": "Smartwatch Avanzado ideal para uso diario y trabajo remoto. Su diseño ergonómico garantiza comodidad durante largas jornadas y su batería de alta duración permite trabajar sin interrupciones.",
-        "imagen": "https://source.unsplash.com/400x300/?smartwatch,20",
-        "mostrarTodo": false
-    },
-    {
-        "id": 21,
-        "titulo": "Monitor Económico",
-        "descripcion": "Monitor Económico con la mejor relación calidad-precio del mercado. Ofrece un equilibrio perfecto entre rendimiento, durabilidad y estilo, adaptándose a las necesidades de estudiantes y profesionales.",
-        "imagen": "https://source.unsplash.com/400x300/?monitor,21",
-        "mostrarTodo": false
-    },
-    {
-        "id": 22,
-        "titulo": "Teclado Premium",
-        "descripcion": "Teclado Premium diseñado para brindar una experiencia superior. Incluye componentes de última generación que optimizan la velocidad, calidad de imagen y facilidad de uso.",
-        "imagen": "https://source.unsplash.com/400x300/?teclado,22",
-        "mostrarTodo": false
-    },
-    {
-        "id": 23,
-        "titulo": "Mouse Portátil",
-        "descripcion": "Mouse Portátil con tecnología de última generación. Compatible con los estándares más recientes para asegurar una conexión estable y rápida en cualquier entorno.",
-        "imagen": "https://source.unsplash.com/400x300/?mouse,23",
-        "mostrarTodo": false
-    },
-    {
-        "id": 24,
-        "titulo": "Altavoz Compacto",
-        "descripcion": "Altavoz Compacto perfecto para viajes y movilidad. Su tamaño compacto y peso reducido lo convierten en el aliado ideal para quienes necesitan trabajar o entretenerse en movimiento.",
-        "imagen": "https://source.unsplash.com/400x300/?altavoz,24",
-        "mostrarTodo": false
-    },
-    {
-        "id": 25,
-        "titulo": "Impresora Inalámbrico",
-        "descripcion": "Impresora Inalámbrico con conectividad avanzada y gran autonomía. Permite emparejarse fácilmente con múltiples dispositivos y mantiene una señal estable a larga distancia.",
-        "imagen": "https://source.unsplash.com/400x300/?impresora,25",
-        "mostrarTodo": false
-    },
-    {
-        "id": 26,
-        "titulo": "Proyector Ultrarrápido",
-        "descripcion": "Proyector Ultrarrápido que combina rendimiento y diseño elegante. Fabricado con materiales de alta calidad para garantizar resistencia y una apariencia profesional.",
-        "imagen": "https://source.unsplash.com/400x300/?proyector,26",
-        "mostrarTodo": false
-    },
-    {
-        "id": 27,
-        "titulo": "Router Resistente",
-        "descripcion": "Router Resistente fabricado con materiales de alta durabilidad. Resiste golpes, arañazos y condiciones adversas, asegurando una vida útil prolongada.",
-        "imagen": "https://source.unsplash.com/400x300/?router,27",
-        "mostrarTodo": false
-    },
-    {
-        "id": 28,
-        "titulo": "Disco Duro Ligero",
-        "descripcion": "Disco Duro Ligero pensado para profesionales exigentes. Ofrece precisión, rapidez y una interfaz intuitiva para maximizar la productividad.",
-        "imagen": "https://source.unsplash.com/400x300/?discoduro,28",
-        "mostrarTodo": false
-    },
-    {
-        "id": 29,
-        "titulo": "Memoria USB Potente",
-        "descripcion": "Memoria USB Potente con garantía de 2 años incluida. Respaldado por un servicio de atención al cliente eficiente y confiable.",
-        "imagen": "https://source.unsplash.com/400x300/?memoriausb,29",
-        "mostrarTodo": false
-    },
-    {
-        "id": 30,
-        "titulo": "Teléfono Avanzado",
-        "descripcion": "Teléfono Avanzado ideal para uso diario y trabajo remoto. Su diseño ergonómico garantiza comodidad durante largas jornadas y su batería de alta duración permite trabajar sin interrupciones.",
-        "imagen": "https://source.unsplash.com/400x300/?teléfono,30",
-        "mostrarTodo": false
-    },
-    {
-        "id": 31,
-        "titulo": "Portátil Económico",
-        "descripcion": "Portátil Económico con la mejor relación calidad-precio del mercado. Ofrece un equilibrio perfecto entre rendimiento, durabilidad y estilo, adaptándose a las necesidades de estudiantes y profesionales.",
-        "imagen": "https://source.unsplash.com/400x300/?portátil,31",
-        "mostrarTodo": false
-    },
-    {
-        "id": 32,
-        "titulo": "Tablet Premium",
-        "descripcion": "Tablet Premium diseñado para brindar una experiencia superior. Incluye componentes de última generación que optimizan la velocidad, calidad de imagen y facilidad de uso.",
-        "imagen": "https://source.unsplash.com/400x300/?tablet,32",
-        "mostrarTodo": false
-    },
-    {
-        "id": 33,
-        "titulo": "Auriculares Portátil",
-        "descripcion": "Auriculares Portátil con tecnología de última generación. Compatible con los estándares más recientes para asegurar una conexión estable y rápida en cualquier entorno.",
-        "imagen": "https://source.unsplash.com/400x300/?auriculares,33",
-        "mostrarTodo": false
-    },
-    {
-        "id": 34,
-        "titulo": "Cámara Compacto",
-        "descripcion": "Cámara Compacto perfecto para viajes y movilidad. Su tamaño compacto y peso reducido lo convierten en el aliado ideal para quienes necesitan trabajar o entretenerse en movimiento.",
-        "imagen": "https://source.unsplash.com/400x300/?cámara,34",
-        "mostrarTodo": false
-    },
-    {
-        "id": 35,
-        "titulo": "Smartwatch Inalámbrico",
-        "descripcion": "Smartwatch Inalámbrico con conectividad avanzada y gran autonomía. Permite emparejarse fácilmente con múltiples dispositivos y mantiene una señal estable a larga distancia.",
-        "imagen": "https://source.unsplash.com/400x300/?smartwatch,35",
-        "mostrarTodo": false
-    },
-    {
-        "id": 36,
-        "titulo": "Monitor Ultrarrápido",
-        "descripcion": "Monitor Ultrarrápido que combina rendimiento y diseño elegante. Fabricado con materiales de alta calidad para garantizar resistencia y una apariencia profesional.",
-        "imagen": "https://source.unsplash.com/400x300/?monitor,36",
-        "mostrarTodo": false
-    },
-    {
-        "id": 37,
-        "titulo": "Teclado Resistente",
-        "descripcion": "Teclado Resistente fabricado con materiales de alta durabilidad. Resiste golpes, arañazos y condiciones adversas, asegurando una vida útil prolongada.",
-        "imagen": "https://source.unsplash.com/400x300/?teclado,37",
-        "mostrarTodo": false
-    },
-    {
-        "id": 38,
-        "titulo": "Mouse Ligero",
-        "descripcion": "Mouse Ligero pensado para profesionales exigentes. Ofrece precisión, rapidez y una interfaz intuitiva para maximizar la productividad.",
-        "imagen": "https://source.unsplash.com/400x300/?mouse,38",
-        "mostrarTodo": false
-    },
-    {
-        "id": 39,
-        "titulo": "Altavoz Potente",
-        "descripcion": "Altavoz Potente con garantía de 2 años incluida. Respaldado por un servicio de atención al cliente eficiente y confiable.",
-        "imagen": "https://source.unsplash.com/400x300/?altavoz,39",
-        "mostrarTodo": false
-    },
-    {
-        "id": 40,
-        "titulo": "Impresora Avanzado",
-        "descripcion": "Impresora Avanzado ideal para uso diario y trabajo remoto. Su diseño ergonómico garantiza comodidad durante largas jornadas y su batería de alta duración permite trabajar sin interrupciones.",
-        "imagen": "https://source.unsplash.com/400x300/?impresora,40",
-        "mostrarTodo": false
-    },
-    {
-        "id": 41,
-        "titulo": "Proyector Económico",
-        "descripcion": "Proyector Económico con la mejor relación calidad-precio del mercado. Ofrece un equilibrio perfecto entre rendimiento, durabilidad y estilo, adaptándose a las necesidades de estudiantes y profesionales.",
-        "imagen": "https://source.unsplash.com/400x300/?proyector,41",
-        "mostrarTodo": false
-    },
-    {
-        "id": 42,
-        "titulo": "Router Premium",
-        "descripcion": "Router Premium diseñado para brindar una experiencia superior. Incluye componentes de última generación que optimizan la velocidad, calidad de imagen y facilidad de uso.",
-        "imagen": "https://source.unsplash.com/400x300/?router,42",
-        "mostrarTodo": false
-    },
-    {
-        "id": 43,
-        "titulo": "Disco Duro Portátil",
-        "descripcion": "Disco Duro Portátil con tecnología de última generación. Compatible con los estándares más recientes para asegurar una conexión estable y rápida en cualquier entorno.",
-        "imagen": "https://source.unsplash.com/400x300/?discoduro,43",
-        "mostrarTodo": false
-    },
-    {
-        "id": 44,
-        "titulo": "Memoria USB Compacto",
-        "descripcion": "Memoria USB Compacto perfecto para viajes y movilidad. Su tamaño compacto y peso reducido lo convierten en el aliado ideal para quienes necesitan trabajar o entretenerse en movimiento.",
-        "imagen": "https://source.unsplash.com/400x300/?memoriausb,44",
-        "mostrarTodo": false
-    },
-    {
-        "id": 45,
-        "titulo": "Teléfono Inalámbrico",
-        "descripcion": "Teléfono Inalámbrico con conectividad avanzada y gran autonomía. Permite emparejarse fácilmente con múltiples dispositivos y mantiene una señal estable a larga distancia.",
-        "imagen": "https://source.unsplash.com/400x300/?teléfono,45",
-        "mostrarTodo": false
-    },
-    {
-        "id": 46,
-        "titulo": "Portátil Ultrarrápido",
-        "descripcion": "Portátil Ultrarrápido que combina rendimiento y diseño elegante. Fabricado con materiales de alta calidad para garantizar resistencia y una apariencia profesional.",
-        "imagen": "https://source.unsplash.com/400x300/?portátil,46",
-        "mostrarTodo": false
-    },
-    {
-        "id": 47,
-        "titulo": "Tablet Resistente",
-        "descripcion": "Tablet Resistente fabricado con materiales de alta durabilidad. Resiste golpes, arañazos y condiciones adversas, asegurando una vida útil prolongada.",
-        "imagen": "https://source.unsplash.com/400x300/?tablet,47",
-        "mostrarTodo": false
-    },
-    {
-        "id": 48,
-        "titulo": "Auriculares Ligero",
-        "descripcion": "Auriculares Ligero pensado para profesionales exigentes. Ofrece precisión, rapidez y una interfaz intuitiva para maximizar la productividad.",
-        "imagen": "https://source.unsplash.com/400x300/?auriculares,48",
-        "mostrarTodo": false
-    },
-    {
-        "id": 49,
-        "titulo": "Cámara Potente",
-        "descripcion": "Cámara Potente con garantía de 2 años incluida. Respaldado por un servicio de atención al cliente eficiente y confiable.",
-        "imagen": "https://source.unsplash.com/400x300/?cámara,49",
-        "mostrarTodo": false
-    },
-    {
-        "id": 50,
-        "titulo": "Smartwatch Avanzado",
-        "descripcion": "Smartwatch Avanzado ideal para uso diario y trabajo remoto. Su diseño ergonómico garantiza comodidad durante largas jornadas y su batería de alta duración permite trabajar sin interrupciones.",
-        "imagen": "https://source.unsplash.com/400x300/?smartwatch,50",
-        "mostrarTodo": false
-    }
+    "disponible": true,
+    "nuevo": true
+  }
 ]

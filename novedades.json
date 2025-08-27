@@ -1,0 +1,20 @@
+[
+    {
+      "id": 1,
+      "titulo": "Abundancia de Maíz",
+      "descripcion": "En el Chocó se reporta alta producción de maíz este mes.",
+      "imagen": "https://cdn-icons-png.flaticon.com/128/2674/2674566.png"
+    },
+    {
+      "id": 2,
+      "titulo": "Escasez de Plátano",
+      "descripcion": "Baja producción de plátano en la zona norte por lluvias.",
+      "imagen": "https://cdn-icons-png.flaticon.com/128/271/271375.png"
+    },
+    {
+      "id": 3,
+      "titulo": "Nueva ruta de comercialización",
+      "descripcion": "Se abre ruta directa Quibdó – Medellín para transporte de productos.",
+      "imagen": "https://cdn-icons-png.flaticon.com/128/1788/1788598.png"
+    }
+]

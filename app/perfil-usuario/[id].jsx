@@ -1,134 +1,360 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity } from 'react-native';
-import { Text, Button, Avatar, List, useTheme } from 'react-native-paper';
+import { ScrollView, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, Avatar, List, Snackbar } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import usuariosData from '../../usuarios.json'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PerfilUsuario() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { colors, dark } = useTheme();
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mensaje, setMensaje] = useState("");
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    console.log('ID recibido:', id);
     const idStr = Array.isArray(id) ? id[0] : id;
     const encontrado = usuariosData.find(u => String(u.id) === String(idStr));
-    console.log('Usuario encontrado:', encontrado);
     setUsuario(encontrado ?? null);
     setLoading(false);
   }, [id]);
 
-  const handleCerrarSesion = () => {
-    // Navega a la pantalla principal
-    router.replace('/app'); 
+  const handleCerrarSesion = async () => {
+    try {
+      await AsyncStorage.removeItem('usuarioLogueado');
+      router.replace('/inicio-sesion');
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error cerrando sesión:', error);
+      }
+      router.replace('/inicio-sesion');
+    }
   };
 
   const handleEditarPerfil = () => {
-    // Navega a editar perfil pasando el ID del usuario
     router.push(`/editar-perfil/${usuario.id}`);
+  };
+
+  const handleConfiguracion = () => {
+    router.push('/configuracion');
+  };
+
+  const showMessage = (msg) => {
+    setMensaje(msg);
+    setVisible(true);
   };
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <Text style={{ color: colors.text }}>Cargando...</Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Cargando...</Text>
       </View>
     );
   }
 
   if (!usuario) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <Text style={{ color: colors.text, marginBottom: 20 }}>Usuario no encontrado</Text>
-        <Button mode="outlined" onPress={() => router.back()}>
-          Volver
-        </Button>
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle" size={64} color="#f44336" style={styles.errorIcon} />
+        <Text style={styles.errorTitle}>Usuario no encontrado</Text>
+        <Text style={styles.errorMessage}>No se pudo cargar la información del usuario</Text>
+        <TouchableOpacity 
+          style={styles.backToHomeButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backToHomeText}>Volver</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ padding: 20, paddingTop: 60 }}>
-        {/* Botón de retroceso */}
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
         <TouchableOpacity 
           onPress={() => router.back()} 
-          style={{ position: 'absolute', top: 30, left: 20, zIndex: 1 }}
+          style={styles.backButton}
         >
-          <AntDesign name="arrowleft" size={28} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mi Perfil</Text>
+      </View>
 
-        {/* Sección del perfil - DATOS DINÁMICOS */}
-        <View style={{ alignItems: 'center', marginBottom: 30, marginTop: 20 }}>
-          <Avatar.Icon
-            size={120}
-            icon="account"
-            style={{ backgroundColor: dark ? '#555' : '#e0e0e0', marginBottom: 10 }}
-            color={dark ? 'white' : 'black'}
-          />
-          <Text variant="headlineMedium" style={{ fontWeight: 'bold', marginBottom: 5, color: colors.text }}>
-            {usuario.nombre}
-          </Text>
-          <Text variant="bodyMedium" style={{ color: colors.text }}>
-            {usuario.email}
-          </Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Sección del perfil */}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarContainer}>
+            {usuario.foto ? (
+              <Avatar.Image size={100} source={{ uri: usuario.foto }} />
+            ) : (
+              <Avatar.Text 
+                size={100} 
+                label={usuario.nombre ? usuario.nombre.charAt(0).toUpperCase() : "?"} 
+                style={styles.avatar} 
+                color="#2e7d32"
+              />
+            )}
+            
+            <TouchableOpacity style={styles.editAvatarButton}>
+              <Ionicons name="camera" size={16} color="#2e7d32" />
+            </TouchableOpacity>
+          </View>
+
+          
+          <Text style={styles.userName}>{usuario.nombre}</Text>
+          <Text style={styles.userEmail}>{usuario.email}</Text>
+          
+          {usuario.telefono && (
+            <View style={styles.contactInfo}>
+              <Ionicons name="call" size={16} color="#666" />
+              <Text style={styles.contactText}>{usuario.telefono}</Text>
+            </View>
+          )}
+          
+          {usuario.direccion && (
+            <View style={styles.contactInfo}>
+              <Ionicons name="location" size={16} color="#666" />
+              <Text style={styles.contactText}>{usuario.direccion}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Lista de opciones */}
-        <List.Section style={{
-          backgroundColor: dark ? '#1e1e1e' : 'white',
-          borderRadius: 10,
-          overflow: 'hidden'
-        }}>
-          <List.Item
-            title="Editar perfil"
-            left={props => <List.Icon {...props} icon="file-document-edit-outline" color={colors.primary} />}
-            right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
-            onPress={handleEditarPerfil}
-            titleStyle={{ color: colors.text }}
-            style={{ borderBottomWidth: 1, borderBottomColor: dark ? '#333' : '#f0f0f0' }}
-          />
+        {/* Opciones del menú */}
+        <View style={styles.menuContainer}>
+          <List.Section style={styles.listSection}>
+            <List.Item
+              title="Editar perfil"
+              description="Actualiza tu información personal"
+              titleStyle={styles.itemTitle}
+              descriptionStyle={styles.itemDescription}
+              left={props => (
+                <View style={styles.iconContainer}>
+                  <Ionicons name="create" size={24} color="#2e7d32" />
+                </View>
+              )}
+              right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
+              onPress={handleEditarPerfil}
+              style={styles.listItem}
+            />
+          </List.Section>
+        </View>
+      </ScrollView>
 
-          <List.Item
-            title="Notificaciones"
-            left={props => <List.Icon {...props} icon="bell-outline" color={colors.primary} />}
-            right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
-            onPress={() => console.log('Navegar a Notificaciones')}
-            titleStyle={{ color: colors.text }}
-            style={{ borderBottomWidth: 1, borderBottomColor: dark ? '#333' : '#f0f0f0' }}
-          />
-
-          <List.Item
-            title="Configuración"
-            left={props => <List.Icon {...props} icon="cog-outline" color={colors.primary} />}
-            right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
-            onPress={() => console.log('Navegar a Configuración')}
-            titleStyle={{ color: colors.text }}
-            style={{ borderBottomWidth: 1, borderBottomColor: dark ? '#333' : '#f0f0f0' }}
-          />
-
-          <List.Item
-            title="Ayuda"
-            left={props => <List.Icon {...props} icon="help-circle-outline" color={colors.primary} />}
-            right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
-            onPress={() => console.log('Navegar a Ayuda')}
-            titleStyle={{ color: colors.text }}
-          />
-        </List.Section>
-
-        {/* Cerrar sesión */}
-        <Button
-          mode="text"
-          onPress={handleCerrarSesion}
-          labelStyle={{ color: colors.primary, fontSize: 18, fontWeight: 'bold' }}
-          style={{ marginTop: 30, alignSelf: 'center' }}
-        >
-          Cerrar sesión
-        </Button>
-      </View>
-    </ScrollView>
+      <Snackbar
+        visible={visible}
+        onDismiss={() => setVisible(false)}
+        duration={2000}
+        style={styles.snackbar}
+        action={{
+          label: 'OK',
+          onPress: () => setVisible(false),
+          labelStyle: { color: '#2e7d32' }
+        }}
+      >
+        <Text style={styles.snackbarText}>{mensaje}</Text>
+      </Snackbar>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#2e7d32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+  },
+  profileSection: {
+    backgroundColor: 'white',
+    alignItems: 'center',
+    paddingVertical: 30,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    backgroundColor: '#f0f9f0',
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  contactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  contactText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  menuContainer: {
+    paddingHorizontal: 16,
+  },
+  listSection: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  listItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#f0f9f0',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  itemDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  logoutContainer: {
+    marginTop: 24,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f44336',
+    marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 32,
+  },
+  errorIcon: {
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  backToHomeButton: {
+    backgroundColor: '#2e7d32',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  backToHomeText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  snackbar: {
+    backgroundColor: 'white',
+    marginBottom: 16,
+  },
+  snackbarText: {
+    color: '#333',
+  },
+});

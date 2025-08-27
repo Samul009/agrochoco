@@ -88,5 +88,14 @@
         "direccion": "Calle 13 #70-51",
         "rol": "Editor",
         "clave": "M!vjHBIW$z"
+    },
+    {
+        "id": 11,
+        "nombre": "Gustavo Mena",
+        "email": "gustavomena@gmail.com",
+        "telefono": "+57 321-7391838",
+        "direccion": "Calle 18 #0-29",
+        "rol": "Administrador",
+        "clave": "gustavomena"
     }
 ]

@@ -1,35 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity } from 'react-native';
-import { Text, List, Switch, Button, Snackbar, Provider as PaperProvider, MD3DarkTheme } from 'react-native-paper';
+import { ScrollView, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, List, Switch, Snackbar, Dialog, Portal, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { AntDesign } from '@expo/vector-icons'; 
+import { Ionicons } from '@expo/vector-icons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Tema oscuro personalizado
-const customDarkTheme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    background: '#121420',
-    surface: '#1e1e2e',
-    primary: '#bb86fc', 
-    onSurface: '#ffffff',
-    onBackground: '#ffffff',
-    text: '#ffffff', 
-    outline: '#64748b',
-    onSurfaceVariant: '#9ca3af',
-  },
-};
 
 export default function Configuracion() {
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
   const [mensaje, setMensaje] = useState("");
   const [visible, setVisible] = useState(false);
   const [usuarioId, setUsuarioId] = useState(null);
+  const [dialogVisible, setDialogVisible] = useState(false); // Estado para el diálogo
   const router = useRouter();
-  
-
-  const { colors, dark } = customDarkTheme;
 
   useEffect(() => {
     const cargarConfig = async () => {
@@ -45,7 +27,9 @@ export default function Configuracion() {
           setUsuarioId(userData.id);
         }
       } catch (error) {
-        console.error('Error cargando configuraciones:', error);
+        if (__DEV__) {
+          console.error('Error cargando configuraciones:', error);
+        }
       }
     };
     cargarConfig();
@@ -59,145 +43,373 @@ export default function Configuracion() {
       setMensaje(nuevoEstado ? "Notificaciones activadas ✅" : "Notificaciones desactivadas 🚫");
       setVisible(true);
     } catch (error) {
-      console.error('Error guardando notificaciones:', error);
+      if (__DEV__) {
+        console.error('Error guardando notificaciones:', error);
+      }
     }
   };
 
-  const handleCerrarSesion = async () => {
+  // Función para mostrar el diálogo de confirmación
+  const mostrarDialogoCerrarSesion = () => {
+    setDialogVisible(true);
+  };
+
+  // Función para ocultar el diálogo
+  const ocultarDialogo = () => {
+    setDialogVisible(false);
+  };
+
+  // Función para confirmar el cierre de sesión
+  const confirmarCerrarSesion = async () => {
     try {
       await AsyncStorage.removeItem('usuarioLogueado');
-      router.replace('/app');
+      setDialogVisible(false);
+      router.replace('/inicio-sesion');
     } catch (error) {
-      console.error('Error cerrando sesión:', error);
-      router.replace('/app');
+      if (__DEV__) {
+        console.error('Error cerrando sesión:', error);
+      }
+      setDialogVisible(false);
+      router.replace('/inicio-sesion');
     }
   };
 
-  const handleCuenta = () => {
-    if (usuarioId) {
-      router.push(`/perfil-usuario/${usuarioId}`);
-    } else {
-      setMensaje("Error: No se encontró usuario logueado");
+  const handleCuenta = async () => {
+    try {
+      // Obtener directamente de AsyncStorage en lugar de usar el estado
+      const usuarioLogueado = await AsyncStorage.getItem('usuarioLogueado');
+      
+      if (usuarioLogueado) {
+        const userData = JSON.parse(usuarioLogueado);
+        
+        if (userData.id) {
+          router.push(`/perfil-usuario/${userData.id}`);
+        } else {
+          setMensaje("Error: ID de usuario no encontrado");
+          setVisible(true);
+        }
+      } else {
+        setMensaje("Error: No hay usuario logueado");
+        setVisible(true);
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error obteniendo datos del usuario:', error);
+      }
+      setMensaje("Error al cargar datos del usuario");
       setVisible(true);
     }
   };
 
   return (
-    <PaperProvider theme={customDarkTheme}>
-      <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
-        <View style={{ padding: 20, paddingTop: 60 }}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={{ position: 'absolute', top: 30, left: 20, zIndex: 1 }}
-          >
-            <AntDesign name="arrowleft" size={28} color={colors.text} />
-          </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Configuración</Text>
+      </View>
 
-          <Text
-            variant="headlineLarge"
-            style={{ 
-              fontWeight: 'bold', 
-              marginBottom: 20, 
-              color: colors.text,
-              textAlign: 'center',
-              marginTop: 20 
-            }}
-          >
-            Configuración
-          </Text>
-
-          <List.Section style={{ 
-            backgroundColor: colors.surface, 
-            borderRadius: 10, 
-            overflow: 'hidden' 
-          }}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.menuContainer}>
+          <List.Section style={styles.listSection}>
             <List.Item
-              title="Cuenta"
-              titleStyle={{ color: colors.text }}
-              left={props => <List.Icon {...props} icon="account" color={colors.primary} />}
-              right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
+              title="Mi Cuenta"
+              description="Gestiona tu perfil y datos personales"
+              titleStyle={styles.itemTitle}
+              descriptionStyle={styles.itemDescription}
+              left={props => (
+                <View style={styles.iconContainer}>
+                  <Ionicons name="person" size={24} color="#2e7d32" />
+                </View>
+              )}
+              right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={handleCuenta}
-              style={{ borderBottomWidth: 1, borderBottomColor: colors.outline }}
+              style={styles.listItem}
             />
+            
             <List.Item
               title="Notificaciones"
-              titleStyle={{ color: colors.text }}
-              left={props => <List.Icon {...props} icon="bell" color={colors.primary} />}
+              description={isNotificationsEnabled ? "Activadas" : "Desactivadas"}
+              titleStyle={styles.itemTitle}
+              descriptionStyle={styles.itemDescription}
+              left={props => (
+                <View style={styles.iconContainer}>
+                  <Ionicons name="notifications" size={24} color="#2e7d32" />
+                </View>
+              )}
               right={() => (
                 <Switch
                   value={isNotificationsEnabled}
                   onValueChange={toggleNotifications}
-                  color={colors.primary}
-                  thumbColor={isNotificationsEnabled ? colors.primary : colors.outline}
-                  trackColor={{ false: colors.outline, true: colors.primary }}
+                  color="#4caf50"
+                  thumbColor={isNotificationsEnabled ? "#4caf50" : "#ccc"}
+                  trackColor={{ false: "#e0e0e0", true: "#c8e6c9" }}
                 />
               )}
               onPress={toggleNotifications}
-              style={{ borderBottomWidth: 1, borderBottomColor: colors.outline }}
+              style={styles.listItem}
             />
+            
             <List.Item
               title="Privacidad"
-              titleStyle={{ color: colors.text }}
-              left={props => <List.Icon {...props} icon="shield-account" color={colors.primary} />}
-              right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
+              description="Controla tu información personal"
+              titleStyle={styles.itemTitle}
+              descriptionStyle={styles.itemDescription}
+              left={props => (
+                <View style={styles.iconContainer}>
+                  <Ionicons name="shield-checkmark" size={24} color="#2e7d32" />
+                </View>
+              )}
+              right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={() => {
                 setMensaje("Función en desarrollo");
                 setVisible(true);
               }}
-              style={{ borderBottomWidth: 1, borderBottomColor: colors.outline }}
+              style={styles.listItem}
             />
+            
             <List.Item
               title="Seguridad"
-              titleStyle={{ color: colors.text }}
-              left={props => <List.Icon {...props} icon="security" color={colors.primary} />}
-              right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
+              description="Configuración de seguridad"
+              titleStyle={styles.itemTitle}
+              descriptionStyle={styles.itemDescription}
+              left={props => (
+                <View style={styles.iconContainer}>
+                  <Ionicons name="lock-closed" size={24} color="#2e7d32" />
+                </View>
+              )}
+              right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={() => {
                 setMensaje("Función en desarrollo");
                 setVisible(true);
               }}
-              style={{ borderBottomWidth: 1, borderBottomColor: colors.outline }}
+              style={styles.listItem}
             />
+            
             <List.Item
-              title="Ayuda"
-              titleStyle={{ color: colors.text }}
-              left={props => <List.Icon {...props} icon="help-circle" color={colors.primary} />}
-              right={props => <List.Icon {...props} icon="chevron-right" color={colors.text} />}
+              title="Ayuda y Soporte"
+              description="Obtén ayuda y soporte técnico"
+              titleStyle={styles.itemTitle}
+              descriptionStyle={styles.itemDescription}
+              left={props => (
+                <View style={styles.iconContainer}>
+                  <Ionicons name="help-circle" size={24} color="#2e7d32" />
+                </View>
+              )}
+              right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={() => {
                 setMensaje("Función en desarrollo");
                 setVisible(true);
               }}
+              style={styles.listItem}
             />
           </List.Section>
 
-          <Button
-            mode="text"
-            onPress={handleCerrarSesion}
-            labelStyle={{ color: colors.primary, fontSize: 18, fontWeight: 'bold' }}
-            style={{ marginTop: 30, alignSelf: 'center' }}
-          >
-            Cerrar sesión
-          </Button>
-
-          {__DEV__ && usuarioId && (
-            <Text style={{ color: colors.text, textAlign: 'center', marginTop: 10, fontSize: 12 }}>
-              DEBUG: Usuario ID = {usuarioId}
-            </Text>
-          )}
+          <View style={styles.logoutContainer}>
+            <TouchableOpacity
+              onPress={mostrarDialogoCerrarSesion}
+              style={styles.logoutButton}
+            >
+              <Ionicons name="log-out-outline" size={24} color="#f44336" />
+              <Text style={styles.logoutText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <Snackbar
-          visible={visible}
-          onDismiss={() => setVisible(false)}
-          duration={2000}
-          style={{ backgroundColor: colors.surface }}
-          action={{
-            label: 'OK',
-            onPress: () => setVisible(false),
-          }}
-        >
-          <Text style={{ color: colors.text }}>{mensaje}</Text>
-        </Snackbar>
       </ScrollView>
-    </PaperProvider>
+
+      {/* Portal para el diálogo de confirmación */}
+      <Portal>
+        <Dialog visible={dialogVisible} onDismiss={ocultarDialogo} style={styles.dialog}>
+          <Dialog.Icon icon="logout" size={40} />
+          <Dialog.Title style={styles.dialogTitle}>Cerrar Sesión</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogContent}>
+              ¿Estás seguro de que deseas cerrar tu sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button
+              onPress={ocultarDialogo}
+              mode="outlined"
+              style={styles.cancelButton}
+              labelStyle={styles.cancelButtonText}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onPress={confirmarCerrarSesion}
+              mode="contained"
+              style={styles.confirmButton}
+              labelStyle={styles.confirmButtonText}
+            >
+              Cerrar Sesión
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Snackbar
+        visible={visible}
+        onDismiss={() => setVisible(false)}
+        duration={2000}
+        style={styles.snackbar}
+        action={{
+          label: 'OK',
+          onPress: () => setVisible(false),
+          labelStyle: { color: '#2e7d32' }
+        }}
+      >
+        <Text style={styles.snackbarText}>{mensaje}</Text>
+      </Snackbar>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#2e7d32',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+  },
+  menuContainer: {
+    padding: 16,
+  },
+  listSection: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  listItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#f0f9f0',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  itemDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  logoutContainer: {
+    marginTop: 24,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f44336',
+    marginLeft: 8,
+  },
+  // Estilos para el diálogo
+  dialog: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+  },
+  dialogTitle: {
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 8,
+  },
+  dialogContent: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    lineHeight: 24,
+  },
+  dialogActions: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    borderColor: '#ddd',
+    borderWidth: 1,
+    marginRight: 8,
+    flex: 1,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  confirmButton: {
+    backgroundColor: '#f44336',
+    marginLeft: 8,
+    flex: 1,
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  snackbar: {
+    backgroundColor: 'white',
+    marginBottom: 16,
+  },
+  snackbarText: {
+    color: '#333',
+  },
+});
