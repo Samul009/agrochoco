@@ -1,0 +1,81 @@
+INSTRUCCIONES PASO A PASO PARA CREAR LA BASE DE DATOS AGROCHOCO
+
+1. Abrir phpMyAdmin (http://localhost/phpmyadmin)
+2. Usuario: root, Contraseña: (vacía)
+
+3. CREAR BASE DE DATOS:
+   - Clic en "Nueva"
+   - Nombre: agrochoco
+   - Cotejamiento: utf8_general_ci
+   - Clic en "Crear"
+
+4. CREAR TABLAS (una por una si es necesario):
+
+TABLA USUARIOS:
+CREATE TABLE usuarios (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nombre varchar(100) NOT NULL,
+  email varchar(100) NOT NULL UNIQUE,
+  clave varchar(255) NOT NULL,
+  telefono varchar(20) DEFAULT NULL,
+  direccion text DEFAULT NULL,
+  rol enum('admin','usuario','productor') DEFAULT 'usuario',
+  fecha_registro timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+TABLA PRODUCTOS:
+CREATE TABLE productos (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nombre varchar(100) NOT NULL,
+  categoria varchar(50) NOT NULL,
+  descripcion text DEFAULT NULL,
+  imagen varchar(255) DEFAULT '🌾',
+  estado varchar(20) DEFAULT 'Disponible',
+  ubicacion_cosecha varchar(100) DEFAULT NULL,
+  temporada_cosecha varchar(50) DEFAULT NULL,
+  metodo_cosecha varchar(100) DEFAULT NULL,
+  produccion_toneladas decimal(10,2) DEFAULT NULL,
+  precio_libra decimal(10,2) DEFAULT 0.00,
+  precio_bulto decimal(10,2) DEFAULT 0.00,
+  precio_camion decimal(10,2) DEFAULT 0.00,
+  nuevo boolean DEFAULT false,
+  disponible boolean DEFAULT true,
+  fecha_creacion timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+TABLA NOVEDADES:
+CREATE TABLE novedades (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  titulo varchar(200) NOT NULL,
+  descripcion text NOT NULL,
+  imagen varchar(255) DEFAULT NULL,
+  usuario_id int(11) DEFAULT NULL,
+  fecha_creacion timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+TABLA PRODUCTORES_PRODUCTOS:
+CREATE TABLE productores_productos (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  usuario_id int(11) NOT NULL,
+  producto_id int(11) NOT NULL,
+  area_cultivada decimal(10,2) DEFAULT NULL,
+  produccion_actual decimal(10,2) DEFAULT NULL,
+  fecha_inicio_produccion date DEFAULT NULL,
+  estado_produccion enum('Activo','Inactivo','Pausado') DEFAULT 'Activo',
+  notas text DEFAULT NULL,
+  fecha_registro timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+5. INSERTAR DATOS DE PRUEBA:
+INSERT INTO usuarios (nombre, email, clave, rol) VALUES
+('Administrador', 'admin@agrochoco.com', 'admin123', 'admin'),
+('Juan Pérez', 'juan@email.com', '123456', 'productor'),
+('María García', 'maria@email.com', '123456', 'usuario');
+
+INSERT INTO productos (nombre, categoria, descripcion, precio_libra, precio_bulto, precio_camion, nuevo, disponible) VALUES
+('Cacao Premium', 'Cacao', 'Cacao de alta calidad', 2500.00, 125000.00, 2500000.00, true, true),
+('Plátano Verde', 'Plátano', 'Plátano verde fresco', 800.00, 40000.00, 800000.00, false, true);

@@ -63,6 +63,7 @@ export default function Configuracion() {
   const confirmarCerrarSesion = async () => {
     try {
       await AsyncStorage.removeItem('usuarioLogueado');
+      await AsyncStorage.removeItem('token');
       setDialogVisible(false);
       router.replace('/inicio-sesion');
     } catch (error) {
@@ -167,7 +168,7 @@ export default function Configuracion() {
               )}
               right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={() => {
-                setMensaje("Función en desarrollo");
+                setMensaje("La información de tu cuenta está protegida. Solo tú puedes ver y modificar tus datos personales.");
                 setVisible(true);
               }}
               style={styles.listItem}
@@ -185,7 +186,7 @@ export default function Configuracion() {
               )}
               right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={() => {
-                setMensaje("Función en desarrollo");
+                setMensaje("Tu cuenta está protegida con autenticación segura. Tu contraseña está encriptada.");
                 setVisible(true);
               }}
               style={styles.listItem}
@@ -203,7 +204,7 @@ export default function Configuracion() {
               )}
               right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
               onPress={() => {
-                setMensaje("Función en desarrollo");
+                setMensaje("Para ayuda, contacta al equipo de soporte en: soporte@agrochoco.com");
                 setVisible(true);
               }}
               style={styles.listItem}

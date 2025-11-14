@@ -1,13 +1,10 @@
+// inicio-sesion.jsx
 import React, { useState } from 'react';
 import { ScrollView, View, Alert, StyleSheet } from 'react-native';
 import { Text, TextInput, Button, PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { useRouter, Stack } from 'expo-router';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Importa usuarios.json (ajusta la ruta según tu estructura)
-import usuarios from '../usuarios.json';
+import { API_ENDPOINTS, apiRequest } from '../config/api';
 
 export default function InicioSesion() {
   const [email, setEmail] = useState('');
@@ -16,23 +13,7 @@ export default function InicioSesion() {
   const router = useRouter();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
-  // Configuración de login con Google (usa tu clientId real)
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: "TU_ANDROID_CLIENT_ID",
-    iosClientId: "TU_IOS_CLIENT_ID",
-    expoClientId: "TU_EXPO_CLIENT_ID",
-  });
-
-  // Manejo de respuesta Google
-  React.useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      Alert.alert("Google Login", "Inicio de sesión exitoso con Google ✅");
-      router.push("pantalla-principal");
-    }
-  }, [response]);
-
-  // Validar datos de inicio de sesión
+  // Validar datos de inicio de sesión con MySQL
   const validateLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert(
@@ -45,43 +26,58 @@ export default function InicioSesion() {
 
     setIsLoading(true);
 
-    // Buscar usuario por email (ignora mayúsculas)
-    const usuario = usuarios.find(
-      user => user.email.toLowerCase() === email.trim().toLowerCase()
-    );
+    try {
+      // Hacer petición a la API
+      const data = await apiRequest(API_ENDPOINTS.LOGIN, {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          clave: password
+        }),
+      });
 
-    setTimeout(async () => {
+      // Login exitoso - Guardar usuario y token en AsyncStorage
+      const { token, ...usuarioData } = data;
+      
+      await AsyncStorage.setItem('usuarioLogueado', JSON.stringify(usuarioData));
+      
+      // Guardar el token por separado para el interceptor
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+        console.log('🔑 Token guardado en AsyncStorage');
+      }
+
       setIsLoading(false);
 
-      if (!usuario) {
-        Alert.alert('Error', 'El usuario no existe.');
-        return;
+      Alert.alert(
+        'Bienvenido',
+        `¡Hola ${data.nombre}!\n`,
+        [{ 
+          text: 'Continuar', 
+          onPress: () => router.push('novedades') 
+        }]
+      );
+
+    } catch (error) {
+      setIsLoading(false);
+
+      if (__DEV__) {
+        console.error('Error en login:', error);
       }
 
-      if (usuario.clave !== password) {
-        Alert.alert('Error', 'Contraseña incorrecta.');
-        return;
-      }
-
-      // Guardar usuario en AsyncStorage
-      try {
-        await AsyncStorage.setItem('usuarioLogueado', JSON.stringify(usuario));
-
+      if (error.status === 401) {
+        Alert.alert('Error', 'Correo o contraseña incorrectos.');
+      } else if (error.status === 400) {
+        Alert.alert('Error', error.message || 'Datos inválidos.');
+      } else if (error.status === 0) {
         Alert.alert(
-          'Bienvenido',
-          `¡Hola ${usuario.nombre}!\nRol: ${usuario.rol}`,
-          [{ 
-            text: 'Continuar', 
-            onPress: () => router.push('novedades') 
-          }]
+          'Error de conexión',
+          'No se pudo conectar con el servidor. Verifica:\n\n1. Que el servidor esté corriendo (node server.js)\n2. Tu conexión a internet\n3. Que ambos dispositivos estén en la misma red'
         );
-      } catch (error) {
-        if (__DEV__) {
-          console.error('Error guardando usuario:', error);
-        }
-        Alert.alert('Error', 'No se pudo guardar la sesión');
+      } else {
+        Alert.alert('Error', error.message || 'Ocurrió un error inesperado.');
       }
-    }, 1000);
+    }
   };
 
   return (
@@ -150,67 +146,13 @@ export default function InicioSesion() {
             style={{
               marginTop: 10,
               padding: 8,
-              backgroundColor: '#1976d2',
+              backgroundColor: '#2e7d32',
               borderRadius: 10,
             }}
             labelStyle={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}
           >
             {isLoading ? 'Validando...' : 'Iniciar sesión'}
           </Button>
-
-          <View style={{ marginTop: 30 }}>
-            <Text style={{
-              textAlign: 'center',
-              color: '#555',
-              marginBottom: 15
-            }}>
-              O continúa con
-            </Text>
-
-            {/* Google Login */}
-            <Button
-              icon="google"
-              mode="contained"
-              disabled={!request}
-              onPress={() => promptAsync()}
-              style={{
-                marginBottom: 10,
-                padding: 5,
-                backgroundColor: '#ef5350',
-                borderRadius: 10,
-              }}
-            >
-              Iniciar sesión con Google
-            </Button>
-
-            {/* Apple Login */}
-            {AppleAuthentication.isAvailableAsync() && (
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={10}
-                style={{ width: '100%', height: 50 }}
-                onPress={async () => {
-                  try {
-                    const credential = await AppleAuthentication.signInAsync({
-                      requestedScopes: [
-                        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-                      ],
-                    });
-                    Alert.alert("Apple Login", "Inicio de sesión exitoso con Apple ✅");
-                    router.push("pantalla-principal");
-                  } catch (e) {
-                    if (e.code === 'ERR_CANCELED') {
-                      Alert.alert("Cancelado", "Inicio de sesión cancelado");
-                    } else {
-                      Alert.alert("Error", "No se pudo iniciar sesión con Apple");
-                    }
-                  }
-                }}
-              />
-            )}
-          </View>
         </View>
       </ScrollView>
     </PaperProvider>

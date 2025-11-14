@@ -9,7 +9,6 @@ export default function RootLayout() {
       <PaperProvider>
         <Stack>
           <Stack.Screen name="inicio-sesion" options={{ headerShown: false }} />
-          <Stack.Screen name="app" options={{ headerShown: false }} />
           <Stack.Screen name="novedades" options={{ headerShown: false }} />
           <Stack.Screen name="productos" options={{ headerShown: false }} />
           <Stack.Screen name="producto-detalle" options={{ headerShown: false }} />
@@ -18,6 +17,10 @@ export default function RootLayout() {
           <Stack.Screen name="editar-perfil/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="rutas" options={{ headerShown: false }} />
           <Stack.Screen name="notificaciones" options={{ headerShown: false }} />
+          <Stack.Screen name="formulario-producto" options={{ headerShown: false }} />
+          <Stack.Screen name="producto-detalle/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="mi-actividad" options={{ headerShown: false }} />
+          <Stack.Screen name="metricas-admin" options={{ headerShown: false }} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

@@ -1,3 +1,4 @@
+// SmartSearchChip.jsx filtros para las pantallas
 import React, { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Chip, Portal, Modal, Text, Button, Divider } from "react-native-paper";
@@ -19,21 +20,22 @@ const SmartSearchChip = ({
         return {
           title: "Filtrar Novedades",
           icon: "newspaper",
+          color: "#2e7d32",
           filters: {
-            categoria: {
-              title: "Categoría",
-              options: ["Cultivos", "Ganadería", "Tecnología", "Mercados", "Clima", "Políticas"]
-            },
             fecha: {
-              title: "Fecha",
+              title: "📅 Fecha de Publicación",
               options: ["Hoy", "Esta semana", "Este mes", "Últimos 3 meses"]
             },
+            categoria: {
+              title: "🏷️ Categoría",
+              options: ["Cultivos", "Ganadería", "Tecnología", "Mercados", "Clima", "Políticas"]
+            },
             relevancia: {
-              title: "Relevancia",
+              title: "⭐ Relevancia",
               options: ["Alta", "Media", "Baja"]
             },
             region: {
-              title: "Región",
+              title: "🌍 Región",
               options: ["Mi región", "Nacional", "Internacional"]
             }
           }
@@ -43,25 +45,26 @@ const SmartSearchChip = ({
         return {
           title: "Filtrar Productos",
           icon: "leaf",
+          color: "#4caf50",
           filters: {
             categoria: {
-              title: "Categoría",
+              title: "🏷️ Categoría",
               options: ["Cereales", "Legumbres", "Frutas", "Verduras", "Lácteos", "Cárnicos"]
             },
             precio: {
-              title: "Rango de Precio",
-              options: ["$ - $$$", "$$ - $$$$", "$$$ - $$$$$", "Solo ofertas"]
+              title: "💰 Rango de Precio",
+              options: ["Bajo (< $50.000)", "Medio ($50k - $150k)", "Alto (> $150.000)", "Solo ofertas"]
             },
             disponibilidad: {
-              title: "Disponibilidad",
+              title: "📦 Disponibilidad",
               options: ["Disponible ahora", "Próximamente", "Bajo pedido"]
             },
             origen: {
-              title: "Origen",
+              title: "📍 Origen",
               options: ["Local", "Regional", "Nacional", "Importado"]
             },
             calidad: {
-              title: "Calidad",
+              title: "✨ Calidad",
               options: ["Premium", "Estándar", "Orgánico", "Certificado"]
             }
           }
@@ -70,33 +73,34 @@ const SmartSearchChip = ({
       case "rutas":
         return {
           title: "Filtrar Rutas",
-          icon: "car",
+          icon: "map-marker-path",
+          color: "#66bb6a",
           filters: {
             tipoTransporte: {
-              title: "Tipo de Transporte",
+              title: "🚛 Tipo de Transporte",
               options: ["Terrestre", "Marítimo", "Aéreo", "Mixto"]
             },
             distancia: {
-              title: "Distancia",
+              title: "📏 Distancia",
               options: ["0-50 km", "50-200 km", "200-500 km", "+500 km"]
             },
             costo: {
-              title: "Rango de Costo",
+              title: "💵 Rango de Costo",
               options: ["Económico", "Medio", "Premium"]
             },
             tiempo: {
-              title: "Tiempo de Entrega",
+              title: "⏱️ Tiempo de Entrega",
               options: ["Mismo día", "1-3 días", "3-7 días", "+7 días"]
             },
             destino: {
-              title: "Destino",
+              title: "🎯 Tipo de Destino",
               options: ["Mercados locales", "Centrales mayoristas", "Exportación", "Retail"]
             }
           }
         };
       
       default:
-        return { title: "Filtros", icon: "filter", filters: {} };
+        return { title: "Filtros", icon: "filter", color: "#2e7d32", filters: {} };
     }
   };
 
@@ -122,14 +126,21 @@ const SmartSearchChip = ({
     });
   };
 
+  // Verificar si una opción está seleccionada
+  const isOptionSelected = (filterKey, option) => {
+    return (tempFilters[filterKey] || []).includes(option);
+  };
+
   // Aplicar filtros
   const applyFilters = () => {
+    console.log('✅ Aplicando filtros:', tempFilters);
     onFiltersApply(tempFilters);
     setModalVisible(false);
   };
 
   // Limpiar filtros
   const clearAllFilters = () => {
+    console.log('🧹 Limpiando todos los filtros');
     setTempFilters({});
     onClearFilters();
     setModalVisible(false);
@@ -154,9 +165,12 @@ const SmartSearchChip = ({
           onPress={() => setModalVisible(true)}
           style={[
             styles.filterChip,
-            activeCount > 0 && styles.filterChipActive
+            activeCount > 0 && { backgroundColor: config.color }
           ]}
-          textStyle={activeCount > 0 && styles.filterChipTextActive}
+          textStyle={[
+            styles.filterChipText,
+            activeCount > 0 && styles.filterChipTextActive
+          ]}
           mode={activeCount > 0 ? "flat" : "outlined"}
         >
           Filtros {activeCount > 0 && `(${activeCount})`}
@@ -170,12 +184,20 @@ const SmartSearchChip = ({
           onDismiss={closeModal}
           contentContainerStyle={styles.modalContainer}
         >
-          <ScrollView style={styles.modalContent}>
+          <ScrollView 
+            style={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{config.title}</Text>
+              <View style={styles.modalTitleContainer}>
+                <Ionicons name={config.icon} size={24} color={config.color} />
+                <Text style={[styles.modalTitle, { color: config.color }]}>
+                  {config.title}
+                </Text>
+              </View>
               <Button onPress={closeModal} textColor="#666">
-                Cancelar
+                Cerrar
               </Button>
             </View>
 
@@ -187,17 +209,27 @@ const SmartSearchChip = ({
                 <Text style={styles.filterSectionTitle}>{filterConfig.title}</Text>
                 <View style={styles.chipsContainer}>
                   {filterConfig.options.map((option) => {
-                    const isSelected = (tempFilters[filterKey] || []).includes(option);
+                    const isSelected = isOptionSelected(filterKey, option);
                     return (
                       <Chip
                         key={option}
                         onPress={() => handleFilterToggle(filterKey, option)}
                         style={[
                           styles.optionChip,
-                          isSelected && styles.optionChipSelected
+                          isSelected && { 
+                            backgroundColor: config.color + '20',
+                            borderColor: config.color
+                          }
                         ]}
-                        textStyle={isSelected && styles.optionChipTextSelected}
+                        textStyle={[
+                          styles.optionChipText,
+                          isSelected && { 
+                            color: config.color,
+                            fontWeight: '600'
+                          }
+                        ]}
                         mode={isSelected ? "flat" : "outlined"}
+                        selected={isSelected}
                       >
                         {option}
                       </Chip>
@@ -214,18 +246,21 @@ const SmartSearchChip = ({
                 onPress={clearAllFilters}
                 style={styles.clearButton}
                 textColor="#666"
+                icon="close-circle-outline"
               >
                 Limpiar todo
               </Button>
               <Button
                 mode="contained"
                 onPress={applyFilters}
-                style={styles.applyButton}
-                buttonColor="#2e7d32"
+                style={[styles.applyButton, { backgroundColor: config.color }]}
+                icon="check-circle"
               >
                 Aplicar filtros
               </Button>
             </View>
+
+            <View style={{ height: 20 }} />
           </ScrollView>
         </Modal>
       </Portal>
@@ -235,24 +270,26 @@ const SmartSearchChip = ({
 
 const styles = StyleSheet.create({
   chipContainer: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     paddingVertical: 4,
   },
   filterChip: {
-    backgroundColor: "white",
-    borderColor: "#2e7d32",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "#fff",
   },
-  filterChipActive: {
-    backgroundColor: "#2e7d32",
+  filterChipText: {
+    color: "#fff",
   },
   filterChipTextActive: {
     color: "white",
+    fontWeight: '600',
   },
   modalContainer: {
     backgroundColor: "white",
     margin: 20,
-    borderRadius: 12,
-    maxHeight: "80%",
+    borderRadius: 16,
+    maxHeight: "85%",
+    elevation: 5,
   },
   modalContent: {
     padding: 20,
@@ -261,12 +298,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  modalTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#2e7d32",
+    fontWeight: "700",
   },
   divider: {
     marginVertical: 16,
@@ -276,7 +317,7 @@ const styles = StyleSheet.create({
   },
   filterSectionTitle: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     marginBottom: 12,
     color: "#333",
   },
@@ -286,17 +327,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionChip: {
-    marginBottom: 8,
+    marginBottom: 4,
     backgroundColor: "white",
     borderColor: "#ddd",
   },
-  optionChipSelected: {
-    backgroundColor: "#e8f5e8",
-    borderColor: "#2e7d32",
-  },
-  optionChipTextSelected: {
-    color: "#2e7d32",
-    fontWeight: "500",
+  optionChipText: {
+    fontSize: 13,
   },
   actionButtons: {
     flexDirection: "row",

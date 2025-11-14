@@ -1,3 +1,4 @@
+// header.jsx
 import React, { useState } from "react";
 import { View } from "react-native";
 import { Appbar, Searchbar } from "react-native-paper";
@@ -7,7 +8,8 @@ export default function Header({
   title = "Novedades", 
   onSearch, 
   onMenuPress,
-  screenType = "novedades", // nuevo prop para determinar el tipo de pantalla
+  screenType = "novedades",
+  showFilters = true, // Nuevo: controlar si se muestran los filtros
   onFiltersApply,
   activeFilters = {},
   onClearFilters
@@ -27,6 +29,17 @@ export default function Header({
 
   const currentScreenType = getScreenType();
 
+  const handleSearchClose = () => {
+    setSearchVisible(false);
+    setQuery("");
+    onSearch?.(""); // reset lista cuando cierro
+  };
+
+  const handleSearchChange = (text) => {
+    setQuery(text);
+    onSearch?.(text);
+  };
+
   return (
     <>
       <Appbar.Header style={{ backgroundColor: "#2e7d32" }}>
@@ -44,10 +57,7 @@ export default function Header({
           <Searchbar
             placeholder={`Buscar ${title.toLowerCase()}...`}
             value={query}
-            onChangeText={(text) => {
-              setQuery(text);
-              onSearch(text);
-            }}
+            onChangeText={handleSearchChange}
             autoFocus
             style={{
               flex: 1,
@@ -56,17 +66,17 @@ export default function Header({
               backgroundColor: "white",
             }}
             icon="arrow-left"
-            onIconPress={() => {
-              setSearchVisible(false);
-              setQuery("");
-              onSearch(""); // reset lista cuando cierro
-            }}
+            onIconPress={handleSearchClose}
           />
         )}
       </Appbar.Header>
 
-      {/* Chip de filtros inteligente - solo se muestra cuando no está la búsqueda activa */}
-      {!searchVisible && (
+      {/* Chip de filtros inteligente - solo se muestra cuando:
+          1. No está la búsqueda activa
+          2. showFilters es true
+          3. Las funciones de filtro están definidas
+      */}
+      {!searchVisible && showFilters && onFiltersApply && (
         <View style={{ backgroundColor: "#2e7d32", paddingBottom: 8 }}>
           <SmartSearchChip
             screenType={currentScreenType}

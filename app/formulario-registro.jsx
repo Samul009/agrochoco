@@ -1,174 +1,244 @@
+// app/formulario-registro.jsx
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import { Text, TextInput, Button, Snackbar, RadioButton } from 'react-native-paper';
-import usuariosData from '../usuarios.json';
+import { ScrollView, View, Alert, StyleSheet } from 'react-native';
+import { Text, TextInput, Button, PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { useRouter, Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_ENDPOINTS, apiRequest } from '../config/api';
 
 export default function FormularioRegistro() {
-  const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [direccion, setDireccion] = useState("");
-  const [rol, setRol] = useState("Usuario"); // valor por defecto
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [visible, setVisible] = useState(false);
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const router = useRouter();
 
-  const handleRegistro = () => {
-    if (!nombre || !email || !telefono || !direccion || !password || !confirmPassword) {
-      setMensaje("Por favor, complete todos los campos.");
-      setVisible(true);
+  // Validar email
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  // Validar contraseña
+  const isValidPassword = (password) => password.length >= 6;
+
+  const handleRegister = async () => {
+    if (!nombre.trim() || !email.trim() || !telefono.trim() || !direccion.trim() || !password.trim() || !confirmPassword.trim()) {
+      Alert.alert('Campos vacíos', 'Por favor completa todos los campos.');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      Alert.alert('Email inválido', 'Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      Alert.alert('Contraseña débil', 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setMensaje("Las contraseñas no coinciden.");
-      setVisible(true);
+      Alert.alert('Error', 'Las contraseñas no coinciden.');
       return;
     }
 
-    const usuarioExistente = usuariosData.find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
-    );
-    if (usuarioExistente) {
-      setMensaje("El usuario ya está registrado.");
-      setVisible(true);
-      return;
+    setIsLoading(true);
+
+    try {
+      // Enviar datos al backend
+      const data = await apiRequest(API_ENDPOINTS.REGISTER, {
+        method: 'POST',
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          email: email.trim().toLowerCase(),
+          clave: password,
+          telefono: telefono.trim(),
+          direccion: direccion.trim(),
+          rol: 'usuario' // valor por defecto
+        }),
+      });
+
+      setIsLoading(false);
+
+      // Guardar usuario y token en AsyncStorage
+      const { token, ...usuarioData } = data;
+      
+      await AsyncStorage.setItem('usuarioLogueado', JSON.stringify(usuarioData));
+      
+      // Guardar el token por separado para el interceptor
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+        console.log('🔑 Token guardado en AsyncStorage');
+      }
+
+      Alert.alert(
+        '¡Registro exitoso!',
+        `Bienvenido ${data.nombre}. Tu cuenta ha sido creada correctamente.\n.`,
+        [{ 
+          text: 'Continuar', 
+          onPress: () => router.push('novedades') 
+        }]
+      );
+
+      // Limpiar campos
+      setNombre('');
+      setEmail('');
+      setTelefono('');
+      setDireccion('');
+      setPassword('');
+      setConfirmPassword('');
+
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Error en registro:', error);
+
+      if (error.status === 409) {
+        Alert.alert('Email en uso', 'Este correo electrónico ya está registrado.');
+      } else if (error.status === 400) {
+        Alert.alert('Error', error.message || 'Datos inválidos.');
+      } else if (error.status === 0) {
+        Alert.alert('Error de conexión', 'No se pudo conectar con el servidor.');
+      } else {
+        Alert.alert('Error', error.message || 'No se pudo completar el registro.');
+      }
     }
-
-    // Crear nuevo usuario
-    const nuevoUsuario = {
-      id: usuariosData.length > 0 ? usuariosData[usuariosData.length - 1].id + 1 : 1,
-      nombre,
-      email,
-      telefono,
-      direccion,
-      rol,
-      clave: password,
-    };
-
-    // Simulación de guardado
-    console.log("Usuario creado y guardado en usuarios.json:", nuevoUsuario);
-
-    setMensaje("Usuario creado con éxito ✅");
-    setVisible(true);
-
-    // Limpiar campos
-    setNombre("");
-    setEmail("");
-    setTelefono("");
-    setDireccion("");
-    setPassword("");
-    setConfirmPassword("");
-    setRol("Usuario");
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <View style={{ padding: 20 }}>
-        <Text
-          variant="headlineLarge"
-          style={{
-            fontWeight: "bold",
-            textAlign: "center",
-            marginBottom: 30,
-            marginTop: 40,
-            color: "#000",
-          }}
-        >
-          Crear Cuenta
-        </Text>
+    <PaperProvider theme={MD3LightTheme}>
+      <Stack.Screen
+        options={{
+          title: 'Crear cuenta',
+          headerStyle: { backgroundColor: '#2e7d32' },
+          headerTintColor: '#fff',
+        }}
+      />
 
-        <TextInput
-          style={{ marginBottom: 15 }}
-          mode="outlined"
-          label="Nombre"
-          value={nombre}
-          onChangeText={setNombre}
-        />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.content}>
+          <Text
+            variant="headlineMedium"
+            style={{
+              paddingBottom: 30,
+              fontWeight: 'bold',
+              textAlign: 'center',
+              color: '#000',
+            }}
+          >
+            REGISTRO
+          </Text>
 
-        <TextInput
-          style={{ marginBottom: 15 }}
-          mode="outlined"
-          label="Correo electrónico"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+          {/* Nombre */}
+          <TextInput
+            label="Nombre completo"
+            value={nombre}
+            onChangeText={setNombre}
+            mode="outlined"
+            style={{ marginBottom: 15 }}
+            autoCapitalize="words"
+          />
 
-        <TextInput
-          style={{ marginBottom: 15 }}
-          mode="outlined"
-          label="Teléfono"
-          value={telefono}
-          onChangeText={setTelefono}
-          keyboardType="phone-pad"
-        />
+          {/* Email */}
+          <TextInput
+            label="Correo electrónico"
+            value={email}
+            onChangeText={setEmail}
+            mode="outlined"
+            style={{ marginBottom: 15 }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-        <TextInput
-          style={{ marginBottom: 15 }}
-          mode="outlined"
-          label="Dirección"
-          value={direccion}
-          onChangeText={setDireccion}
-        />
+          {/* Teléfono */}
+          <TextInput
+            label="Teléfono"
+            value={telefono}
+            onChangeText={setTelefono}
+            mode="outlined"
+            style={{ marginBottom: 15 }}
+            keyboardType="phone-pad"
+          />
 
-        <Text style={{ marginTop: 10, marginBottom: 5, fontWeight: "bold" }}>
-          Seleccione Rol
-        </Text>
-        <RadioButton.Group onValueChange={setRol} value={rol}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <RadioButton value="Usuario" />
-            <Text>Usuario</Text>
+          {/* Dirección */}
+          <TextInput
+            label="Dirección"
+            value={direccion}
+            onChangeText={setDireccion}
+            mode="outlined"
+            style={{ marginBottom: 15 }}
+          />
+
+          {/* Contraseña */}
+          <TextInput
+            label="Contraseña"
+            value={password}
+            onChangeText={setPassword}
+            mode="outlined"
+            secureTextEntry={!passwordVisible}
+            style={{ marginBottom: 15 }}
+            right={
+              <TextInput.Icon
+                icon={passwordVisible ? "eye-off" : "eye"}
+                onPress={() => setPasswordVisible(!passwordVisible)}
+              />
+            }
+          />
+
+          {/* Confirmar Contraseña */}
+          <TextInput
+            label="Confirmar contraseña"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            mode="outlined"
+            secureTextEntry={!confirmPasswordVisible}
+            style={{ marginBottom: 25 }}
+            right={
+              <TextInput.Icon
+                icon={confirmPasswordVisible ? "eye-off" : "eye"}
+                onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+              />
+            }
+          />
+
+          <Button
+            mode="contained"
+            onPress={handleRegister}
+            loading={isLoading}
+            disabled={isLoading}
+            style={{
+              marginTop: 10,
+              padding: 8,
+              backgroundColor: '#2e7d32',
+              borderRadius: 10,
+            }}
+            labelStyle={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}
+          >
+            {isLoading ? 'Registrando...' : 'Crear cuenta'}
+          </Button>
+
+          <View style={{ marginTop: 20, alignItems: 'center' }}>
+            <Text style={{ color: '#555' }}>¿Ya tienes una cuenta?</Text>
+            <Button onPress={() => router.back()} mode="text" labelStyle={{ color: '#1976d2' }}>
+              Iniciar sesión
+            </Button>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <RadioButton value="Invitado" />
-            <Text>Invitado</Text>
-          </View>
-        </RadioButton.Group>
-
-        <TextInput
-          style={{ marginBottom: 15, marginTop: 15 }}
-          mode="outlined"
-          label="Contraseña"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <TextInput
-          style={{ marginBottom: 30 }}
-          mode="outlined"
-          label="Confirmar contraseña"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-        />
-
-        <Button
-          mode="contained"
-          onPress={handleRegistro}
-          style={{
-            borderRadius: 10,
-            paddingVertical: 8,
-            width: "100%",
-            alignSelf: "center",
-          }}
-          labelStyle={{ fontSize: 18 }}
-        >
-          Registrarse
-        </Button>
-      </View>
-
-      {/* Snackbar */}
-      <Snackbar
-        visible={visible}
-        onDismiss={() => setVisible(false)}
-        duration={3000}
-      >
-        {mensaje}
-      </Snackbar>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </PaperProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    backgroundColor: MD3LightTheme.colors.background,
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+});

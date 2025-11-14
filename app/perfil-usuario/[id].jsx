@@ -1,10 +1,11 @@
+// perfil-usuario/[id].jsx
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text, Avatar, List, Snackbar } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import usuariosData from '../../usuarios.json'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_ENDPOINTS, apiRequest } from '../../config/api';
 
 export default function PerfilUsuario() {
   const router = useRouter();
@@ -15,15 +16,26 @@ export default function PerfilUsuario() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const idStr = Array.isArray(id) ? id[0] : id;
-    const encontrado = usuariosData.find(u => String(u.id) === String(idStr));
-    setUsuario(encontrado ?? null);
-    setLoading(false);
+    const fetchUsuario = async () => {
+      try {
+        const idUsuario = Array.isArray(id) ? id[0] : id;
+        const data = await apiRequest(API_ENDPOINTS.USUARIO_BY_ID(idUsuario));
+        setUsuario(data);
+      } catch (error) {
+        console.error("❌ Error al obtener usuario:", error);
+        showMessage("No se pudo cargar la información del usuario");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsuario();
   }, [id]);
 
   const handleCerrarSesion = async () => {
     try {
       await AsyncStorage.removeItem('usuarioLogueado');
+      await AsyncStorage.removeItem('token');
       router.replace('/inicio-sesion');
     } catch (error) {
       if (__DEV__) {
@@ -34,7 +46,9 @@ export default function PerfilUsuario() {
   };
 
   const handleEditarPerfil = () => {
-    router.push(`/editar-perfil/${usuario.id}`);
+    if (usuario && usuario.id) {
+      router.push(`/editar-perfil/${usuario.id}`);
+    }
   };
 
   const handleConfiguracion = () => {
@@ -49,7 +63,8 @@ export default function PerfilUsuario() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Cargando...</Text>
+        <ActivityIndicator size="large" color="#2e7d32" />
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
   }
@@ -87,23 +102,18 @@ export default function PerfilUsuario() {
         {/* Sección del perfil */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            {usuario.foto ? (
-              <Avatar.Image size={100} source={{ uri: usuario.foto }} />
-            ) : (
-              <Avatar.Text 
-                size={100} 
-                label={usuario.nombre ? usuario.nombre.charAt(0).toUpperCase() : "?"} 
-                style={styles.avatar} 
-                color="#2e7d32"
-              />
-            )}
+            <Avatar.Text 
+              size={100} 
+              label={usuario.nombre ? usuario.nombre.charAt(0).toUpperCase() : "?"} 
+              style={styles.avatar} 
+              color="#2e7d32"
+            />
             
             <TouchableOpacity style={styles.editAvatarButton}>
               <Ionicons name="camera" size={16} color="#2e7d32" />
             </TouchableOpacity>
           </View>
 
-          
           <Text style={styles.userName}>{usuario.nombre}</Text>
           <Text style={styles.userEmail}>{usuario.email}</Text>
           
@@ -282,30 +292,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  logoutContainer: {
-    marginTop: 24,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f44336',
-    marginLeft: 8,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -315,6 +301,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#666',
+    marginTop: 10,
   },
   errorContainer: {
     flex: 1,
