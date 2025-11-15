@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
+import { API_ENDPOINTS, apiRequest } from '../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -57,22 +58,23 @@ export default function MiActividad() {
       setLoading(true);
       setError(null);
 
-      // Simular usuario guardado
-      let usuarioLogueado = await AsyncStorage.getItem('usuarioLogueado');
+      // Cargar usuario real desde AsyncStorage
+      const usuarioLogueado = await AsyncStorage.getItem('usuarioLogueado');
       if (!usuarioLogueado) {
-        // crear uno falso si no hay
-        usuarioLogueado = JSON.stringify({
-          id: 4,
-          nombre: "Matías Córdoba Mena",
-          email: "matias@gmail.com",
-          rol: "Usuario"
-        });
-        await AsyncStorage.setItem('usuarioLogueado', usuarioLogueado);
+        setError('Debes iniciar sesión para ver tu actividad');
+        setLoading(false);
+        return;
       }
 
       const userData = JSON.parse(usuarioLogueado);
       console.log('👤 Usuario cargado:', userData.nombre);
       setUsuario(userData);
+
+      if (!userData.id) {
+        setError('Error: Usuario sin ID');
+        setLoading(false);
+        return;
+      }
 
       await cargarActividadSimulada(userData.id);
     } catch (error) {
@@ -83,36 +85,44 @@ export default function MiActividad() {
     }
   };
 
-  // Función 100% local: no hace llamadas a backend
+  // Función que obtiene datos reales del backend
   const cargarActividadSimulada = async (usuarioId) => {
-    console.log(`📊 Cargando actividad local para usuario ${usuarioId}`);
+    try {
+      console.log(`📊 Cargando actividad real para usuario ${usuarioId}`);
+      
+      const response = await apiRequest(API_ENDPOINTS.METRICAS_USUARIO(usuarioId), {
+        method: 'GET'
+      });
 
-    const datosSimulados = {
-      productosActivos: 2,
-      productosVistos: 8,
-      novedadesLeidas: 3,
-      diasActivo: 4,
-      actividadSemanal: [
-        { dia: 'Lun', vistas: 1 },
-        { dia: 'Mar', vistas: 2 },
-        { dia: 'Mié', vistas: 0 },
-        { dia: 'Jue', vistas: 3 },
-        { dia: 'Vie', vistas: 1 },
-        { dia: 'Sáb', vistas: 1 },
-        { dia: 'Dom', vistas: 0 }
-      ],
-      categoriasInteres: [
-        { categoria: 'Cacao', interes: 7 },
-        { categoria: 'Plátano', interes: 4 },
-        { categoria: 'Cítricos', interes: 3 }
-      ],
-      ultimaActividad: new Date().toISOString()
-    };
-
-    // Simular retardo de red
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    setMiActividad(datosSimulados);
+      if (response.success && response.data) {
+        setMiActividad(response.data);
+        console.log('✅ Actividad cargada exitosamente:', response.data);
+      } else {
+        throw new Error('Respuesta inválida del servidor');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando actividad:', error);
+      setError('No se pudieron cargar las métricas. Usando datos por defecto.');
+      
+      // Datos por defecto en caso de error
+      setMiActividad({
+        productosActivos: 0,
+        productosVistos: 0,
+        novedadesLeidas: 0,
+        diasActivo: 0,
+        actividadSemanal: [
+          { dia: 'Lun', vistas: 0 },
+          { dia: 'Mar', vistas: 0 },
+          { dia: 'Mié', vistas: 0 },
+          { dia: 'Jue', vistas: 0 },
+          { dia: 'Vie', vistas: 0 },
+          { dia: 'Sáb', vistas: 0 },
+          { dia: 'Dom', vistas: 0 }
+        ],
+        categoriasInteres: [],
+        ultimaActividad: new Date().toISOString()
+      });
+    }
   };
 
   if (loading) {

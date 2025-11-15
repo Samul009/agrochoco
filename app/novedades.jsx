@@ -216,7 +216,22 @@ export default function Novedades() {
 
   const esAdmin = usuario?.rol === 'admin' || usuario?.rol === 'Administrador';
 
-  const fabActions = [
+  // Acciones del FAB para usuarios normales (solo crear novedades)
+  const fabActionsUsuario = [
+    {
+      icon: 'newspaper',
+      label: 'Nueva Novedad',
+      onPress: () => {
+        setFabOpen(false);
+        router.push('/formulario-novedad');
+      },
+      color: '#2e7d32',
+      style: { backgroundColor: '#e8f5e8' }
+    }
+  ];
+
+  // Acciones del FAB para administradores (todas las opciones)
+  const fabActionsAdmin = [
     {
       icon: 'newspaper',
       label: 'Nueva Novedad',
@@ -236,16 +251,6 @@ export default function Novedades() {
       },
       color: '#4caf50',
       style: { backgroundColor: '#f1f8e9' }
-    },
-    {
-      icon: 'map-marker-path',
-      label: 'Nueva Ruta',
-      onPress: () => {
-        setFabOpen(false);
-        router.push('/rutas');
-      },
-      color: '#66bb6a',
-      style: { backgroundColor: '#e8f5e8' }
     }
   ];
 
@@ -273,23 +278,23 @@ export default function Novedades() {
             onRefresh={cargarNovedades}
           />
           
-          {/* Solo mostrar FAB si es admin */}
-          {esAdmin && (
+          {/* Mostrar FAB a cualquier usuario autenticado */}
+          {usuario && (
             <FAB.Group
               open={fabOpen}
               visible={true}
               icon={fabOpen ? 'close' : 'plus'}
-              actions={fabActions}
+              actions={esAdmin ? fabActionsAdmin : fabActionsUsuario}
               onStateChange={({ open }) => setFabOpen(open)}
               onPress={() => {}}
               fabStyle={{
-                backgroundColor: '#ff9800',
+                backgroundColor: esAdmin ? '#ff9800' : '#2e7d32',
                 bottom: 70,
               }}
               theme={{
                 colors: {
-                  primary: '#ff9800',
-                  accent: '#2e7d32',
+                  primary: esAdmin ? '#ff9800' : '#2e7d32',
+                  accent: '#4caf50',
                 }
               }}
             />

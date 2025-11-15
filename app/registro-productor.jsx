@@ -34,7 +34,7 @@ export default function RegistroProductor() {
 
   const cargarUsuario = async () => {
     try {
-      const userData = await AsyncStorage.getItem("usuario");
+      const userData = await AsyncStorage.getItem("usuarioLogueado");
       if (userData) {
         const user = JSON.parse(userData);
         setUsuario(user);
@@ -45,7 +45,7 @@ export default function RegistroProductor() {
           'Debes iniciar sesión para registrarte como productor',
           [
             { text: 'Cancelar', onPress: () => router.back() },
-            { text: 'Iniciar sesión', onPress: () => router.push('/login') }
+            { text: 'Iniciar sesión', onPress: () => router.replace('/inicio-sesion') }
           ]
         );
       }

@@ -202,6 +202,20 @@ export default function DrawerMenu({
       },
     ];
 
+    // Agregar "Mis Productos" si el usuario es productor
+    if (usuarioRol === "productor") {
+      if (__DEV__) {
+        console.log("✅ Agregando 'Mis Productos' para PRODUCTOR");
+      }
+      items.push({
+        icon: "leaf",
+        title: "Mis Productos",
+        description: "Gestiona tus productos",
+        onPress: () => handleNavigate("/mis-productos"),
+        color: "#4caf50",
+      });
+    }
+
     // Agregar métricas según el rol
     if (usuarioRol === "administrador") {
       if (__DEV__) {
@@ -239,9 +253,8 @@ export default function DrawerMenu({
   // Items adicionales de administrador
   const menuItemsAdmin = useMemo(() => {
     if (usuarioRol !== "administrador") {
-      if (__DEV__) {
-        console.log("❌ NO es administrador, menuItemsAdmin vacío");
-      }
+      // Este log es solo informativo - no es un error
+      // Se muestra solo en modo desarrollo para debugging
       return [];
     }
 

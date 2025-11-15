@@ -18,6 +18,7 @@ export default function Productos() {
   const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState({});
   const [usuario, setUsuario] = useState(null);
+  const [esProductor, setEsProductor] = useState(false);
   // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // 5 productos por página
@@ -38,12 +39,30 @@ export default function Productos() {
           console.log('👤 Usuario en Productos:', userData);
           console.log('🔑 Rol:', userData.rol);
         }
+        
+        // Verificar si el usuario es productor
+        if (userData.id) {
+          verificarSiEsProductor(userData.id);
+        }
       }
 
       // Cargar productos
       await cargarProductos();
     } catch (error) {
       console.error('Error cargando datos iniciales:', error);
+    }
+  };
+
+  const verificarSiEsProductor = async (usuarioId) => {
+    try {
+      const response = await apiRequest(API_ENDPOINTS.ES_PRODUCTOR(usuarioId));
+      setEsProductor(response.esProductor || false);
+      if (__DEV__) {
+        console.log('👨‍🌾 Usuario es productor:', response.esProductor);
+      }
+    } catch (error) {
+      console.error('Error verificando si es productor:', error);
+      setEsProductor(false);
     }
   };
 
@@ -189,31 +208,33 @@ export default function Productos() {
 
   const handleRegistroProductor = () => {
     setFabOpen(false);
-    if (!productos || productos.length === 0) {
-      Alert.alert(
-        'Sin productos',
-        'No hay productos disponibles para registrarte como productor. Vuelve más tarde.',
-        [{ text: 'Entendido', style: 'default' }]
-      );
-      return;
-    }
-    
-    // Mostrar diálogo con lista de productos para seleccionar
-    const productosOpciones = productos.map(p => p.nombre);
-    Alert.alert(
-      'Registrarse como Productor',
-      'Selecciona un producto para registrarte como productor:',
-      productosOpciones.map((nombre, index) => ({
-        text: nombre,
-        onPress: () => {
-          const productoSeleccionado = productos[index];
-          router.push(`/registro-productor?producto_id=${productoSeleccionado.id}&nombre=${encodeURIComponent(nombre)}`);
-        }
-      })).concat([{ text: 'Cancelar', style: 'cancel' }])
-    );
+    // Navegar directamente a la pantalla de selección de productos
+    router.push('/seleccionar-producto');
   };
 
-  const fabActionsUsuario = [
+  // Acciones del FAB para usuarios normales
+  const fabActionsUsuario = esProductor ? [
+    {
+      icon: 'leaf',
+      label: 'Nuevo Producto',
+      onPress: () => {
+        setFabOpen(false);
+        router.push('/formulario-producto');
+      },
+      color: '#4caf50',
+      style: { backgroundColor: '#f1f8e9' }
+    },
+    {
+      icon: 'refresh',
+      label: 'Recargar Lista',
+      onPress: () => {
+        setFabOpen(false);
+        cargarProductos();
+      },
+      color: '#2e7d32',
+      style: { backgroundColor: '#e8f5e8' }
+    }
+  ] : [
     {
       icon: 'account-plus',
       label: 'Registrarse como Productor',

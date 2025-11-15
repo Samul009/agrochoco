@@ -49,14 +49,31 @@ export default function InicioSesion() {
 
       setIsLoading(false);
 
-      Alert.alert(
-        'Bienvenido',
-        `¡Hola ${data.nombre}!\n`,
-        [{ 
-          text: 'Continuar', 
-          onPress: () => router.push('novedades') 
-        }]
-      );
+      // Verificar el rol del usuario para redirigir según corresponda
+      const rol = (data.rol || '').toLowerCase().trim();
+      const esAdministrador = rol === 'administrador';
+
+      if (esAdministrador) {
+        // Si es administrador, redirigir al panel de administración
+        Alert.alert(
+          'Bienvenido Administrador',
+          `¡Hola ${data.nombre}!\nAccediendo al panel de administración.`,
+          [{ 
+            text: 'Continuar', 
+            onPress: () => router.replace('/admin-panel')
+          }]
+        );
+      } else {
+        // Si es usuario normal, redirigir a novedades
+        Alert.alert(
+          'Bienvenido',
+          `¡Hola ${data.nombre}!\n`,
+          [{ 
+            text: 'Continuar', 
+            onPress: () => router.replace('/novedades')
+          }]
+        );
+      }
 
     } catch (error) {
       setIsLoading(false);

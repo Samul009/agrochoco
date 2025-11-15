@@ -81,8 +81,21 @@ app.post("/login", (req, res) => {
     return res.status(400).json({ message: "Email y clave son requeridos" });
   }
 
-  // Primero obtener el usuario con su contraseña hasheada
-  const query = "SELECT id, nombre, email, rol, telefono, direccion, clave FROM usuarios WHERE email = ?";
+  // Primero obtener el usuario con su contraseña hasheada y el nombre del rol
+  const query = `
+    SELECT 
+      u.id, 
+      u.nombre, 
+      u.email, 
+      u.rol_id,
+      r.nombre as rol,
+      u.telefono, 
+      u.direccion, 
+      u.clave 
+    FROM usuarios u
+    LEFT JOIN roles r ON u.rol_id = r.id
+    WHERE u.email = ?
+  `;
   
   db.query(query, [email], (err, result) => {
     if (err) {
@@ -114,11 +127,25 @@ app.post("/login", (req, res) => {
       const { clave, ...usuarioSinClave } = usuario;
       
       // Crear payload del token
+      // Normalizar el rol para compatibilidad con el frontend
+      let rolNormalizado = usuario.rol || null;
+      if (rolNormalizado) {
+        // Convertir nombres de roles a formato esperado por el frontend
+        if (rolNormalizado.toLowerCase() === 'administrador') {
+          rolNormalizado = 'Administrador';
+        } else if (rolNormalizado.toLowerCase() === 'productor') {
+          rolNormalizado = 'Productor';
+        } else if (rolNormalizado.toLowerCase() === 'encargado de novedades') {
+          rolNormalizado = 'Encargado de Novedades';
+        }
+      }
+      
       const tokenPayload = {
         uid: usuario.id,
         sub: usuario.email,
         nombre: usuario.nombre,
-        rol: usuario.rol
+        rol: rolNormalizado,
+        rol_id: usuario.rol_id
       };
       
       // Generar token JWT con algoritmo HS256
@@ -162,9 +189,11 @@ app.post("/register", (req, res) => {
     }
 
     // Insertar nuevo usuario
-    // Validar llave maestra si se intenta crear un administrador
-    let rolNormalizado = 'Usuario'; // Por defecto es Usuario
+    // Por defecto el rol_id es NULL (se actualizará a 'Productor' si se registra como productor)
+    // Solo se asigna 'Administrador' si se proporciona la llave maestra correcta
+    let rolId = null; // Por defecto es NULL
     
+    // Si se intenta crear un administrador, verificar primero
     if (rol && rol.toLowerCase() === 'administrador') {
       // Verificar si se proporcionó la llave maestra correcta
       if (!masterKey || masterKey !== MASTER_KEY) {
@@ -173,19 +202,35 @@ app.post("/register", (req, res) => {
           message: "Se requiere llave maestra para crear un administrador" 
         });
       }
-      rolNormalizado = 'Administrador';
-      console.log('🔑 Llave maestra válida - Creando administrador');
+      // Obtener el ID del rol Administrador
+      db.query("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, result) => {
+        if (err) {
+          console.error('❌ Error obteniendo rol Administrador:', err);
+          return res.status(500).json({ message: "Error en el servidor" });
+        }
+        if (result.length === 0) {
+          console.error('❌ Rol Administrador no encontrado en la base de datos');
+          return res.status(500).json({ message: "Error en la configuración del sistema" });
+        }
+        rolId = result[0].id;
+        continuarRegistro(rolId);
+      });
+      return; // Salir aquí para esperar la respuesta de la consulta
     }
     
-    // Hashear la contraseña antes de guardarla (10 rounds es un buen balance entre seguridad y rendimiento)
-    bcrypt.hash(clave, 10, (hashErr, hashedPassword) => {
+    // Si no es administrador, continuar con rol_id = NULL
+    continuarRegistro(rolId);
+    
+    function continuarRegistro(rolIdFinal) {
+      // Hashear la contraseña antes de guardarla (10 rounds es un buen balance entre seguridad y rendimiento)
+      bcrypt.hash(clave, 10, (hashErr, hashedPassword) => {
       if (hashErr) {
         console.error('❌ Error hasheando contraseña:', hashErr);
         return res.status(500).json({ message: "Error al procesar la contraseña" });
       }
       
-      const query = "INSERT INTO usuarios (nombre, email, clave, telefono, direccion, rol) VALUES (?, ?, ?, ?, ?, ?)";
-      db.query(query, [nombre, email, hashedPassword, telefono || null, direccion || null, rolNormalizado], (err, result) => {
+      const query = "INSERT INTO usuarios (nombre, email, clave, telefono, direccion, rol_id) VALUES (?, ?, ?, ?, ?, ?)";
+      db.query(query, [nombre, email, hashedPassword, telefono || null, direccion || null, rolIdFinal], (err, result) => {
         if (err) {
           console.error('❌ Error al crear usuario:', err);
           console.error('❌ Detalles del error:', err.code, err.sqlMessage);
@@ -197,29 +242,59 @@ app.post("/register", (req, res) => {
         
         console.log('✅ Usuario creado:', nombre);
         
-        // Generar token JWT para el nuevo usuario
-        const tokenPayload = {
-          uid: result.insertId,
-          sub: email,
-          nombre: nombre,
-          rol: rolNormalizado
-        };
+        // Obtener el nombre del rol para el token
+        let nombreRol = null;
+        if (rolIdFinal) {
+          db.query("SELECT nombre FROM roles WHERE id = ?", [rolIdFinal], (err, rolResult) => {
+            if (!err && rolResult.length > 0) {
+              nombreRol = rolResult[0].nombre;
+            }
+            generarRespuestaRegistro(result.insertId, nombreRol, rolIdFinal);
+          });
+        } else {
+          generarRespuestaRegistro(result.insertId, null, null);
+        }
         
-        const token = jwt.sign(tokenPayload, JWT_SECRET, {
-          expiresIn: JWT_EXPIRES_IN
-        });
-        
-        console.log('🔑 Token JWT generado para nuevo usuario');
-        
-        res.status(201).json({
-          id: result.insertId,
-          nombre,
-          email,
-          rol: rolNormalizado,
-          token: token
-        });
+        function generarRespuestaRegistro(userId, rolNombre, rolIdUser) {
+          // Normalizar el nombre del rol para el frontend
+          let rolNormalizado = rolNombre || null;
+          if (rolNormalizado) {
+            if (rolNormalizado.toLowerCase() === 'administrador') {
+              rolNormalizado = 'Administrador';
+            } else if (rolNormalizado.toLowerCase() === 'productor') {
+              rolNormalizado = 'Productor';
+            } else if (rolNormalizado.toLowerCase() === 'encargado de novedades') {
+              rolNormalizado = 'Encargado de Novedades';
+            }
+          }
+          
+          // Generar token JWT para el nuevo usuario
+          const tokenPayload = {
+            uid: userId,
+            sub: email,
+            nombre: nombre,
+            rol: rolNormalizado,
+            rol_id: rolIdUser
+          };
+          
+          const token = jwt.sign(tokenPayload, JWT_SECRET, {
+            expiresIn: JWT_EXPIRES_IN
+          });
+          
+          console.log('🔑 Token JWT generado para nuevo usuario');
+          
+          res.status(201).json({
+            id: userId,
+            nombre,
+            email,
+            rol: rolNormalizado,
+            rol_id: rolIdUser,
+            token: token
+          });
+        }
       });
-    });
+      });
+    }
   });
 });
 
@@ -238,7 +313,18 @@ app.get("/me", authenticateToken, (req, res) => {
 app.get("/usuarios", (req, res) => {
   console.log('📋 Obteniendo lista de usuarios');
   
-  db.query("SELECT id, nombre, email, telefono, direccion, rol FROM usuarios", (err, results) => {
+  db.query(`
+    SELECT 
+      u.id, 
+      u.nombre, 
+      u.email, 
+      u.telefono, 
+      u.direccion, 
+      u.rol_id,
+      r.nombre as rol
+    FROM usuarios u
+    LEFT JOIN roles r ON u.rol_id = r.id
+  `, (err, results) => {
     if (err) {
       console.error('❌ Error obteniendo usuarios:', err);
       return res.status(500).json({ message: "Error en el servidor" });
@@ -255,7 +341,17 @@ app.get("/usuarios/:id", (req, res) => {
   console.log('👤 Obteniendo usuario con ID:', id);
 
   db.query(
-    "SELECT id, nombre, email, telefono, direccion, rol FROM usuarios WHERE id = ?",
+    `SELECT 
+      u.id, 
+      u.nombre, 
+      u.email, 
+      u.telefono, 
+      u.direccion, 
+      u.rol_id,
+      r.nombre as rol
+    FROM usuarios u
+    LEFT JOIN roles r ON u.rol_id = r.id
+    WHERE u.id = ?`,
     [id],
     (err, result) => {
       if (err) {
@@ -275,35 +371,92 @@ app.get("/usuarios/:id", (req, res) => {
 });
 
 // Actualizar usuario
-app.put("/usuarios/:id", (req, res) => {
+app.put("/usuarios/:id", authenticateToken, (req, res) => {
   const { id } = req.params;
-  const { nombre, email, telefono, direccion } = req.body;
+  const { nombre, email, telefono, direccion, rol_id, clave } = req.body;
   
   console.log('✏️ Actualizando usuario:', id);
 
-  const query = "UPDATE usuarios SET nombre=?, email=?, telefono=?, direccion=? WHERE id=?";
-  
-  db.query(query, [nombre, email, telefono || null, direccion || null, id], (err, result) => {
-    if (err) {
-      console.error('❌ Error actualizando usuario:', err);
-      return res.status(500).json({ message: "Error al actualizar usuario" });
-    }
-    
-    if (result.affectedRows === 0) {
-      console.log('⚠️ Usuario no encontrado para actualizar:', id);
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-    
-    console.log('✅ Usuario actualizado:', id);
-    res.json({ 
-      message: "Usuario actualizado correctamente",
-      id,
-      nombre,
-      email,
-      telefono,
-      direccion
+  // Si hay contraseña, hashearla
+  if (clave && clave.trim() !== '') {
+    bcrypt.hash(clave, 10, (hashErr, hashedPassword) => {
+      if (hashErr) {
+        console.error('❌ Error hasheando contraseña:', hashErr);
+        return res.status(500).json({ message: "Error al procesar contraseña" });
+      }
+      
+      const query = "UPDATE usuarios SET nombre=?, email=?, telefono=?, direccion=?, rol_id=?, clave=? WHERE id=?";
+      db.query(query, [nombre, email, telefono || null, direccion || null, rol_id || null, hashedPassword, id], (err, result) => {
+        if (err) {
+          console.error('❌ Error actualizando usuario:', err);
+          return res.status(500).json({ message: "Error al actualizar usuario" });
+        }
+        
+        if (result.affectedRows === 0) {
+          console.log('⚠️ Usuario no encontrado para actualizar:', id);
+          return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        
+        // Obtener usuario actualizado con rol
+        db.query(`
+          SELECT 
+            u.*,
+            r.nombre as rol
+          FROM usuarios u
+          LEFT JOIN roles r ON u.rol_id = r.id
+          WHERE u.id = ?
+        `, [id], (err, updatedResult) => {
+          if (err) {
+            console.error('❌ Error obteniendo usuario actualizado:', err);
+            return res.status(500).json({ message: "Usuario actualizado pero error al obtener datos" });
+          }
+          
+          const { clave: _, ...usuarioSinClave } = updatedResult[0];
+          console.log('✅ Usuario actualizado:', id);
+          res.json({ 
+            message: "Usuario actualizado correctamente",
+            ...usuarioSinClave
+          });
+        });
+      });
     });
-  });
+  } else {
+    // Sin cambiar contraseña
+    const query = "UPDATE usuarios SET nombre=?, email=?, telefono=?, direccion=?, rol_id=? WHERE id=?";
+    db.query(query, [nombre, email, telefono || null, direccion || null, rol_id || null, id], (err, result) => {
+      if (err) {
+        console.error('❌ Error actualizando usuario:', err);
+        return res.status(500).json({ message: "Error al actualizar usuario" });
+      }
+      
+      if (result.affectedRows === 0) {
+        console.log('⚠️ Usuario no encontrado para actualizar:', id);
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // Obtener usuario actualizado con rol
+      db.query(`
+        SELECT 
+          u.*,
+          r.nombre as rol
+        FROM usuarios u
+        LEFT JOIN roles r ON u.rol_id = r.id
+        WHERE u.id = ?
+      `, [id], (err, updatedResult) => {
+        if (err) {
+          console.error('❌ Error obteniendo usuario actualizado:', err);
+          return res.status(500).json({ message: "Usuario actualizado pero error al obtener datos" });
+        }
+        
+        const { clave: _, ...usuarioSinClave } = updatedResult[0];
+        console.log('✅ Usuario actualizado:', id);
+        res.json({ 
+          message: "Usuario actualizado correctamente",
+          ...usuarioSinClave
+        });
+      });
+    });
+  }
 });
 
 // ==================== NOVEDADES ====================
@@ -482,8 +635,10 @@ app.get("/productos", (req, res) => {
   const query = `
     SELECT 
       p.*,
+      c.nombre as categoria,
       COUNT(DISTINCT pp.usuario_id) as total_productores
     FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
     LEFT JOIN productores_productos pp ON p.id = pp.producto_id AND pp.estado_produccion = 'Activo'
     GROUP BY p.id
     ORDER BY p.fecha_creacion DESC
@@ -507,7 +662,8 @@ app.get("/productos", (req, res) => {
     const productosFormateados = results.map(p => ({
       id: p.id,
       nombre: p.nombre,
-      categoria: p.categoria,
+      categoria: p.categoria || 'Sin categoría', // 'categoria' viene del JOIN c.nombre as categoria
+      categoria_id: p.categoria_id,
       descripcion: p.descripcion,
       imagen: p.imagen,
       estado: p.estado,
@@ -540,10 +696,12 @@ app.get("/productos/:id", (req, res) => {
   const query = `
     SELECT 
       p.*,
+      c.nombre as categoria,
       COUNT(DISTINCT pp.usuario_id) as total_productores,
       SUM(pp.area_cultivada) as area_total,
       SUM(pp.produccion_actual) as produccion_total
     FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
     LEFT JOIN productores_productos pp ON p.id = pp.producto_id AND pp.estado_produccion = 'Activo'
     WHERE p.id = ?
     GROUP BY p.id
@@ -564,7 +722,8 @@ app.get("/productos/:id", (req, res) => {
     const productoFormateado = {
       id: p.id,
       nombre: p.nombre,
-      categoria: p.categoria,
+      categoria: p.categoria || 'Sin categoría',
+      categoria_id: p.categoria_id,
       descripcion: p.descripcion,
       imagen: p.imagen,
       estado: p.estado,
@@ -589,178 +748,346 @@ app.get("/productos/:id", (req, res) => {
   });
 });
 
-// Crear producto (requiere autenticación y ser administrador)
+// Crear producto (requiere autenticación y estar registrado como productor)
 app.post("/productos", authenticateToken, (req, res) => {
-  const { 
-    nombre, 
-    categoria, 
-    descripcion, 
-    imagen, 
-    estado,
-    ubicacion_cosecha,
-    temporada_cosecha,
-    metodo_cosecha,
-    produccion_toneladas,
-    precio_libra,
-    precio_bulto,
-    precio_camion,
-    nuevo,
-    disponible
-  } = req.body;
+  const userId = req.user.uid; // ID del usuario del token JWT
   
-  console.log('➕ Creando producto:', nombre);
-  
-  if (!nombre || !categoria) {
-    return res.status(400).json({ message: "Nombre y categoría son requeridos" });
-  }
-
-  const query = `
-    INSERT INTO productos 
-    (nombre, categoria, descripcion, imagen, estado, ubicacion_cosecha, temporada_cosecha, 
-     metodo_cosecha, produccion_toneladas, precio_libra, precio_bulto, precio_camion, nuevo, disponible) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-  
-  db.query(query, [
-    nombre, 
-    categoria, 
-    descripcion || null, 
-    imagen || '🌾', 
-    estado || 'Disponible',
-    ubicacion_cosecha || null,
-    temporada_cosecha || null,
-    metodo_cosecha || null,
-    produccion_toneladas || null,
-    precio_libra || 0,
-    precio_bulto || 0,
-    precio_camion || 0,
-    nuevo || false,
-    disponible !== false
-  ], (err, result) => {
-    if (err) {
-      console.error('❌ Error creando producto:', err);
-      return res.status(500).json({ message: "Error al crear producto" });
-    }
-    
-    console.log('✅ Producto creado con ID:', result.insertId);
-    res.status(201).json({
-      id: result.insertId,
-      nombre,
-      categoria,
-      descripcion,
-      imagen,
-      estado,
-      message: "Producto creado exitosamente"
-    });
-  });
-});
-
-// Actualizar producto (requiere autenticación y ser administrador)
-app.put("/productos/:id", authenticateToken, (req, res) => {
-  const { id } = req.params;
-  const { 
-    nombre, 
-    categoria, 
-    descripcion, 
-    imagen, 
-    estado,
-    ubicacion_cosecha,
-    temporada_cosecha,
-    metodo_cosecha,
-    produccion_toneladas,
-    precio_libra,
-    precio_bulto,
-    precio_camion,
-    nuevo,
-    disponible
-  } = req.body;
-  
-  console.log('✏️ Actualizando producto:', id);
-  
-  if (!nombre || !categoria) {
-    return res.status(400).json({ message: "Nombre y categoría son requeridos" });
-  }
-
-  const query = `
-    UPDATE productos 
-    SET nombre=?, categoria=?, descripcion=?, imagen=?, estado=?, 
-        ubicacion_cosecha=?, temporada_cosecha=?, metodo_cosecha=?, 
-        produccion_toneladas=?, precio_libra=?, precio_bulto=?, precio_camion=?,
-        nuevo=?, disponible=?
-    WHERE id=?
-  `;
-  
-  db.query(query, [
-    nombre, 
-    categoria, 
-    descripcion, 
-    imagen, 
-    estado,
-    ubicacion_cosecha,
-    temporada_cosecha,
-    metodo_cosecha,
-    produccion_toneladas,
-    precio_libra,
-    precio_bulto,
-    precio_camion,
-    nuevo,
-    disponible,
-    id
-  ], (err, result) => {
-    if (err) {
-      console.error('❌ Error actualizando producto:', err);
-      return res.status(500).json({ message: "Error al actualizar" });
-    }
-    
-    if (result.affectedRows === 0) {
-      console.log('⚠️ Producto no encontrado:', id);
-      return res.status(404).json({ message: "Producto no encontrado" });
-    }
-    
-    console.log('✅ Producto actualizado:', id);
-    res.json({ 
-      message: "Producto actualizado correctamente", 
-      id
-    });
-  });
-});
-
-// Eliminar producto (requiere autenticación y ser administrador)
-app.delete("/productos/:id", authenticateToken, (req, res) => {
-  const { id } = req.params;
-  
-  console.log('🗑️ Solicitud de eliminación para producto:', id);
-  
-  // Primero verificar que existe
-  db.query("SELECT * FROM productos WHERE id=?", [id], (err, result) => {
-    if (err) {
-      console.error('❌ Error verificando producto:', err);
-      return res.status(500).json({ message: "Error en el servidor" });
-    }
-    
-    if (result.length === 0) {
-      console.log('⚠️ Producto no encontrado:', id);
-      return res.status(404).json({ message: "Producto no encontrado" });
-    }
-    
-    // Si existe, proceder a eliminar (esto también eliminará las relaciones en productores_productos)
-    db.query("DELETE FROM productos WHERE id=?", [id], (err, deleteResult) => {
+  // Verificar que el usuario esté registrado como productor
+  db.query(
+    "SELECT COUNT(*) as total FROM productores_productos WHERE usuario_id = ? AND estado_produccion = 'Activo'",
+    [userId],
+    (err, result) => {
       if (err) {
-        console.error('❌ Error eliminando producto:', err);
-        return res.status(500).json({ message: "Error al eliminar" });
+        console.error('❌ Error verificando productor:', err);
+        return res.status(500).json({ message: "Error en el servidor" });
       }
       
-      console.log('✅ Producto eliminado:', id);
-      res.json({ 
-        message: "Producto eliminado correctamente",
-        id: id,
-        nombre: result[0].nombre
+      const esProductor = result[0].total > 0;
+      if (!esProductor) {
+        console.log('⚠️ Usuario no autorizado - no está registrado como productor:', userId);
+        return res.status(403).json({ 
+          message: "Debes estar registrado como productor para agregar productos al sistema" 
+        });
+      }
+      
+      const { 
+        nombre, 
+        categoria, 
+        categoria_id,
+        descripcion, 
+        imagen, 
+        estado,
+        ubicacion_cosecha,
+        temporada_cosecha,
+        metodo_cosecha,
+        produccion_toneladas,
+        precio_libra,
+        precio_bulto,
+        precio_camion,
+        nuevo,
+        disponible
+      } = req.body;
+      
+      console.log('➕ Creando producto:', nombre, 'por productor:', userId);
+      
+      if (!nombre || (!categoria_id && !categoria)) {
+        return res.status(400).json({ message: "Nombre y categoría son requeridos" });
+      }
+
+      // Si viene categoria (nombre) en lugar de categoria_id, buscar el ID
+      let categoriaIdFinal = categoria_id || null;
+      
+      if (!categoriaIdFinal && categoria) {
+        // Buscar el ID de la categoría por nombre
+        db.query("SELECT id FROM categorias WHERE nombre = ?", [categoria], (err, catResult) => {
+          if (err || !catResult || catResult.length === 0) {
+            return res.status(400).json({ message: "Categoría no válida" });
+          }
+          categoriaIdFinal = catResult[0].id;
+          insertarProducto();
+        });
+        return;
+      }
+      
+      insertarProducto();
+      
+      function insertarProducto() {
+        const query = `
+          INSERT INTO productos 
+          (nombre, categoria_id, descripcion, imagen, estado, ubicacion_cosecha, temporada_cosecha, 
+           metodo_cosecha, produccion_toneladas, precio_libra, precio_bulto, precio_camion, nuevo, disponible) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        
+        db.query(query, [
+          nombre, 
+          categoriaIdFinal, 
+        descripcion || null, 
+        imagen || '🌾', 
+        estado || 'Disponible',
+        ubicacion_cosecha || null,
+        temporada_cosecha || null,
+        metodo_cosecha || null,
+        produccion_toneladas || null,
+        precio_libra || 0,
+        precio_bulto || 0,
+        precio_camion || 0,
+        nuevo || false,
+        disponible !== false
+      ], (err, result) => {
+        if (err) {
+          console.error('❌ Error creando producto:', err);
+          return res.status(500).json({ message: "Error al crear producto" });
+        }
+        
+        console.log('✅ Producto creado con ID:', result.insertId);
+        res.status(201).json({
+          id: result.insertId,
+          nombre,
+          categoria_id: categoriaIdFinal,
+          descripcion,
+          imagen,
+          estado,
+          message: "Producto creado exitosamente"
+        });
       });
-    });
-  });
+      }
+    }
+  );
+});
+
+// Actualizar producto (requiere autenticación y estar registrado como productor)
+app.put("/productos/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.uid; // ID del usuario del token JWT
+  
+  // Verificar que el usuario esté registrado como productor
+  db.query(
+    "SELECT COUNT(*) as total FROM productores_productos WHERE usuario_id = ? AND estado_produccion = 'Activo'",
+    [userId],
+    (err, result) => {
+      if (err) {
+        console.error('❌ Error verificando productor:', err);
+        return res.status(500).json({ message: "Error en el servidor" });
+      }
+      
+      const esProductor = result[0].total > 0;
+      if (!esProductor) {
+        console.log('⚠️ Usuario no autorizado - no está registrado como productor:', userId);
+        return res.status(403).json({ 
+          message: "Debes estar registrado como productor para actualizar productos" 
+        });
+      }
+      
+      const { 
+        nombre, 
+        categoria, 
+        categoria_id,
+        descripcion, 
+        imagen, 
+        estado,
+        ubicacion_cosecha,
+        temporada_cosecha,
+        metodo_cosecha,
+        produccion_toneladas,
+        precio_libra,
+        precio_bulto,
+        precio_camion,
+        nuevo,
+        disponible
+      } = req.body;
+      
+      console.log('✏️ Actualizando producto:', id, 'por productor:', userId);
+      
+      if (!nombre || (!categoria_id && !categoria)) {
+        return res.status(400).json({ message: "Nombre y categoría son requeridos" });
+      }
+
+      // Si viene categoria (nombre) en lugar de categoria_id, buscar el ID
+      let categoriaIdFinal = categoria_id || null;
+      
+      if (!categoriaIdFinal && categoria) {
+        // Buscar el ID de la categoría por nombre
+        db.query("SELECT id FROM categorias WHERE nombre = ?", [categoria], (err, catResult) => {
+          if (err || !catResult || catResult.length === 0) {
+            return res.status(400).json({ message: "Categoría no válida" });
+          }
+          categoriaIdFinal = catResult[0].id;
+          actualizarProducto();
+        });
+        return;
+      }
+      
+      actualizarProducto();
+      
+      function actualizarProducto() {
+        const query = `
+          UPDATE productos 
+          SET nombre=?, categoria_id=?, descripcion=?, imagen=?, estado=?, 
+              ubicacion_cosecha=?, temporada_cosecha=?, metodo_cosecha=?, 
+              produccion_toneladas=?, precio_libra=?, precio_bulto=?, precio_camion=?,
+              nuevo=?, disponible=?
+          WHERE id=?
+        `;
+        
+        db.query(query, [
+          nombre, 
+          categoriaIdFinal, 
+        descripcion, 
+        imagen, 
+        estado,
+        ubicacion_cosecha,
+        temporada_cosecha,
+        metodo_cosecha,
+        produccion_toneladas,
+        precio_libra,
+        precio_bulto,
+        precio_camion,
+        nuevo,
+        disponible,
+        id
+      ], (err, result) => {
+        if (err) {
+          console.error('❌ Error actualizando producto:', err);
+          return res.status(500).json({ message: "Error al actualizar" });
+        }
+        
+        if (result.affectedRows === 0) {
+          console.log('⚠️ Producto no encontrado:', id);
+          return res.status(404).json({ message: "Producto no encontrado" });
+        }
+        
+        console.log('✅ Producto actualizado:', id);
+        res.json({ 
+          message: "Producto actualizado correctamente", 
+          id
+        });
+      });
+      }
+    }
+  );
+});
+
+// Eliminar producto (requiere autenticación y estar registrado como productor)
+app.delete("/productos/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.uid; // ID del usuario del token JWT
+  
+  // Verificar que el usuario esté registrado como productor
+  db.query(
+    "SELECT COUNT(*) as total FROM productores_productos WHERE usuario_id = ? AND estado_produccion = 'Activo'",
+    [userId],
+    (err, result) => {
+      if (err) {
+        console.error('❌ Error verificando productor:', err);
+        return res.status(500).json({ message: "Error en el servidor" });
+      }
+      
+      const esProductor = result[0].total > 0;
+      if (!esProductor) {
+        console.log('⚠️ Usuario no autorizado - no está registrado como productor:', userId);
+        return res.status(403).json({ 
+          message: "Debes estar registrado como productor para eliminar productos" 
+        });
+      }
+      
+      console.log('🗑️ Solicitud de eliminación para producto:', id, 'por productor:', userId);
+      
+      // Primero verificar que existe
+      db.query("SELECT * FROM productos WHERE id=?", [id], (err, result) => {
+        if (err) {
+          console.error('❌ Error verificando producto:', err);
+          return res.status(500).json({ message: "Error en el servidor" });
+        }
+        
+        if (result.length === 0) {
+          console.log('⚠️ Producto no encontrado:', id);
+          return res.status(404).json({ message: "Producto no encontrado" });
+        }
+        
+        // Si existe, proceder a eliminar (esto también eliminará las relaciones en productores_productos)
+        db.query("DELETE FROM productos WHERE id=?", [id], (err, deleteResult) => {
+          if (err) {
+            console.error('❌ Error eliminando producto:', err);
+            return res.status(500).json({ message: "Error al eliminar" });
+          }
+          
+          console.log('✅ Producto eliminado:', id);
+          res.json({ 
+            message: "Producto eliminado correctamente",
+            id: id,
+            nombre: result[0].nombre
+          });
+        });
+      });
+    }
+  );
 });
 
 // ==================== PRODUCTORES - PRODUCTOS ====================
+
+// Obtener todos los registros de productores-productos
+app.get("/productores-productos", authenticateToken, (req, res) => {
+  console.log('📋 Obteniendo todos los productores-productos');
+  
+  const query = `
+    SELECT 
+      pp.*,
+      u.nombre as usuario_nombre,
+      u.email as usuario_email,
+      p.nombre as producto_nombre,
+      c.nombre as categoria
+    FROM productores_productos pp
+    JOIN usuarios u ON pp.usuario_id = u.id
+    JOIN productos p ON pp.producto_id = p.id
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    ORDER BY pp.fecha_registro DESC
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo productores-productos:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    console.log(`✅ ${results.length} registros encontrados`);
+    res.json(results);
+  });
+});
+
+// Obtener un registro específico por ID
+app.get("/productores-productos/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`📋 Obteniendo productor-producto ${id}`);
+  
+  const query = `
+    SELECT 
+      pp.*,
+      u.nombre as usuario_nombre,
+      u.email as usuario_email,
+      p.nombre as producto_nombre,
+      c.nombre as categoria
+    FROM productores_productos pp
+    JOIN usuarios u ON pp.usuario_id = u.id
+    JOIN productos p ON pp.producto_id = p.id
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    WHERE pp.id = ?
+  `;
+  
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo productor-producto:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Registro no encontrado" });
+    }
+    
+    res.json(results[0]);
+  });
+});
 
 // Registrar un productor para un producto
 app.post("/productores-productos", (req, res) => {
@@ -794,12 +1121,48 @@ app.post("/productores-productos", (req, res) => {
       return res.status(500).json({ message: "Error al registrar" });
     }
     
+    // Actualizar el rol_id del usuario a 'Productor' si no tiene un rol asignado
+    // El trigger también lo hace, pero esto asegura que funcione correctamente
+    db.query(
+      "UPDATE usuarios SET rol_id = (SELECT id FROM roles WHERE nombre = 'Productor' LIMIT 1) WHERE id = ? AND rol_id IS NULL",
+      [usuario_id],
+      (updateErr, updateResult) => {
+        if (updateErr) {
+          console.error('⚠️ Error actualizando rol_id (pero el registro como productor fue exitoso):', updateErr);
+        } else if (updateResult.affectedRows > 0) {
+          console.log(`✅ Rol_id actualizado a 'Productor' para usuario ${usuario_id}`);
+        }
+      }
+    );
+    
     console.log('✅ Productor registrado');
     res.status(201).json({
       id: result.insertId,
       message: "Registrado como productor exitosamente"
     });
   });
+});
+
+// Verificar si un usuario es productor (tiene al menos un registro como productor)
+app.get("/productores-productos/es-productor/:usuario_id", (req, res) => {
+  const { usuario_id } = req.params;
+  
+  console.log(`🔍 Verificando si usuario ${usuario_id} es productor`);
+  
+  db.query(
+    "SELECT COUNT(*) as total FROM productores_productos WHERE usuario_id = ? AND estado_produccion = 'Activo'",
+    [usuario_id],
+    (err, result) => {
+      if (err) {
+        console.error('❌ Error verificando productor:', err);
+        return res.status(500).json({ message: "Error en el servidor" });
+      }
+      
+      const esProductor = result[0].total > 0;
+      console.log(`✅ Usuario ${usuario_id} ${esProductor ? 'ES' : 'NO ES'} productor`);
+      res.json({ esProductor, totalProductos: result[0].total });
+    }
+  );
 });
 
 // Obtener productos de un usuario (productor)
@@ -811,13 +1174,26 @@ app.get("/productores-productos/usuario/:usuario_id", (req, res) => {
   const query = `
     SELECT 
       pp.*,
+      p.id as producto_id,
       p.nombre as producto_nombre,
-      p.categoria,
+      p.descripcion as producto_descripcion,
+      p.categoria_id,
+      c.nombre as categoria,
       p.imagen,
-      p.estado as producto_estado
+      p.estado as producto_estado,
+      p.ubicacion_cosecha,
+      p.temporada_cosecha,
+      p.metodo_cosecha,
+      p.produccion_toneladas,
+      p.precio_libra,
+      p.precio_bulto,
+      p.precio_camion,
+      p.nuevo,
+      p.disponible
     FROM productores_productos pp
     JOIN productos p ON pp.producto_id = p.id
-    WHERE pp.usuario_id = ?
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    WHERE pp.usuario_id = ? AND pp.estado_produccion = 'Activo'
     ORDER BY pp.fecha_registro DESC
   `;
   
@@ -862,7 +1238,428 @@ app.get("/productores-productos/producto/:producto_id", (req, res) => {
   });
 });
 
-// Agregar este endpoint en tu server.js existente
+// Actualizar registro de productor-producto
+app.put("/productores-productos/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { area_cultivada, produccion_actual, fecha_inicio_produccion, estado_produccion, notas } = req.body;
+  
+  console.log(`✏️ Actualizando productor-producto ${id}`);
+  
+  const query = `
+    UPDATE productores_productos 
+    SET area_cultivada = ?, 
+        produccion_actual = ?, 
+        fecha_inicio_produccion = ?, 
+        estado_produccion = ?, 
+        notas = ?
+    WHERE id = ?
+  `;
+  
+  db.query(query, [
+    area_cultivada || null,
+    produccion_actual || null,
+    fecha_inicio_produccion || null,
+    estado_produccion || 'Activo',
+    notas || null,
+    id
+  ], (err, result) => {
+    if (err) {
+      console.error('❌ Error actualizando:', err);
+      return res.status(500).json({ message: "Error al actualizar" });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Registro no encontrado" });
+    }
+    
+    console.log('✅ Productor-producto actualizado');
+    res.json({ message: "Actualizado correctamente", id });
+  });
+});
+
+// Eliminar registro de productor-producto
+app.delete("/productores-productos/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`🗑️ Eliminando productor-producto ${id}`);
+  
+  db.query("DELETE FROM productores_productos WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error eliminando:', err);
+      return res.status(500).json({ message: "Error al eliminar" });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Registro no encontrado" });
+    }
+    
+    console.log('✅ Productor-producto eliminado');
+    res.json({ message: "Eliminado correctamente", id });
+  });
+});
+
+// ==================== CATEGORÍAS ====================
+
+// Obtener todas las categorías
+app.get("/categorias", (req, res) => {
+  console.log('📂 Obteniendo categorías');
+  
+  db.query("SELECT * FROM categorias ORDER BY nombre ASC", (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo categorías:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    console.log(`✅ ${results.length} categorías encontradas`);
+    res.json(results);
+  });
+});
+
+// Obtener categoría por ID
+app.get("/categorias/:id", (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`📂 Obteniendo categoría ${id}`);
+  
+  db.query("SELECT * FROM categorias WHERE id = ?", [id], (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo categoría:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Categoría no encontrada" });
+    }
+    
+    res.json(results[0]);
+  });
+});
+
+// Crear categoría
+app.post("/categorias", authenticateToken, (req, res) => {
+  const { nombre, descripcion } = req.body;
+  
+  console.log('➕ Creando categoría:', nombre);
+  
+  if (!nombre) {
+    return res.status(400).json({ message: "El nombre es requerido" });
+  }
+  
+  db.query("INSERT INTO categorias (nombre, descripcion) VALUES (?, ?)", 
+    [nombre, descripcion || null], 
+    (err, result) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ message: "Ya existe una categoría con ese nombre" });
+        }
+        console.error('❌ Error creando categoría:', err);
+        return res.status(500).json({ message: "Error al crear categoría" });
+      }
+      
+      console.log('✅ Categoría creada con ID:', result.insertId);
+      res.status(201).json({
+        id: result.insertId,
+        nombre,
+        descripcion: descripcion || null,
+        fecha_creacion: new Date()
+      });
+    }
+  );
+});
+
+// Actualizar categoría
+app.put("/categorias/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { nombre, descripcion } = req.body;
+  
+  console.log(`✏️ Actualizando categoría ${id}`);
+  
+  if (!nombre) {
+    return res.status(400).json({ message: "El nombre es requerido" });
+  }
+  
+  db.query("UPDATE categorias SET nombre = ?, descripcion = ? WHERE id = ?", 
+    [nombre, descripcion || null, id], 
+    (err, result) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ message: "Ya existe una categoría con ese nombre" });
+        }
+        console.error('❌ Error actualizando categoría:', err);
+        return res.status(500).json({ message: "Error al actualizar" });
+      }
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Categoría no encontrada" });
+      }
+      
+      console.log('✅ Categoría actualizada');
+      res.json({ message: "Actualizado correctamente", id, nombre, descripcion: descripcion || null });
+    }
+  );
+});
+
+// Eliminar categoría
+app.delete("/categorias/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`🗑️ Eliminando categoría ${id}`);
+  
+  // Verificar que no haya productos usando esta categoría
+  db.query("SELECT COUNT(*) as total FROM productos WHERE categoria_id = ?", [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error verificando productos:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (result[0].total > 0) {
+      return res.status(400).json({ 
+        message: `No se puede eliminar la categoría porque tiene ${result[0].total} producto(s) asociado(s)` 
+      });
+    }
+    
+    db.query("DELETE FROM categorias WHERE id = ?", [id], (err, deleteResult) => {
+      if (err) {
+        console.error('❌ Error eliminando categoría:', err);
+        return res.status(500).json({ message: "Error al eliminar" });
+      }
+      
+      if (deleteResult.affectedRows === 0) {
+        return res.status(404).json({ message: "Categoría no encontrada" });
+      }
+      
+      console.log('✅ Categoría eliminada');
+      res.json({ message: "Categoría eliminada correctamente", id });
+    });
+  });
+});
+
+// ==================== ROLES ====================
+
+// Obtener todos los roles
+app.get("/roles", (req, res) => {
+  console.log('🛡️ Obteniendo roles');
+  
+  db.query("SELECT * FROM roles ORDER BY nombre ASC", (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo roles:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    console.log(`✅ ${results.length} roles encontrados`);
+    res.json(results);
+  });
+});
+
+// Obtener rol por ID
+app.get("/roles/:id", (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`🛡️ Obteniendo rol ${id}`);
+  
+  db.query("SELECT * FROM roles WHERE id = ?", [id], (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo rol:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Rol no encontrado" });
+    }
+    
+    res.json(results[0]);
+  });
+});
+
+// Crear rol
+app.post("/roles", authenticateToken, (req, res) => {
+  const { nombre, descripcion } = req.body;
+  
+  console.log('➕ Creando rol:', nombre);
+  
+  if (!nombre) {
+    return res.status(400).json({ message: "El nombre es requerido" });
+  }
+  
+  db.query("INSERT INTO roles (nombre, descripcion) VALUES (?, ?)", 
+    [nombre, descripcion || null], 
+    (err, result) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ message: "Ya existe un rol con ese nombre" });
+        }
+        console.error('❌ Error creando rol:', err);
+        return res.status(500).json({ message: "Error al crear rol" });
+      }
+      
+      console.log('✅ Rol creado con ID:', result.insertId);
+      res.status(201).json({
+        id: result.insertId,
+        nombre,
+        descripcion: descripcion || null,
+        fecha_creacion: new Date()
+      });
+    }
+  );
+});
+
+// Actualizar rol
+app.put("/roles/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { nombre, descripcion } = req.body;
+  
+  console.log(`✏️ Actualizando rol ${id}`);
+  
+  if (!nombre) {
+    return res.status(400).json({ message: "El nombre es requerido" });
+  }
+  
+  db.query("UPDATE roles SET nombre = ?, descripcion = ? WHERE id = ?", 
+    [nombre, descripcion || null, id], 
+    (err, result) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ message: "Ya existe un rol con ese nombre" });
+        }
+        console.error('❌ Error actualizando rol:', err);
+        return res.status(500).json({ message: "Error al actualizar" });
+      }
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Rol no encontrado" });
+      }
+      
+      console.log('✅ Rol actualizado');
+      res.json({ message: "Actualizado correctamente", id, nombre, descripcion: descripcion || null });
+    }
+  );
+});
+
+// Eliminar rol
+app.delete("/roles/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`🗑️ Eliminando rol ${id}`);
+  
+  // Verificar que no haya usuarios usando este rol
+  db.query("SELECT COUNT(*) as total FROM usuarios WHERE rol_id = ?", [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error verificando usuarios:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (result[0].total > 0) {
+      return res.status(400).json({ 
+        message: `No se puede eliminar el rol porque tiene ${result[0].total} usuario(s) asociado(s)` 
+      });
+    }
+    
+    db.query("DELETE FROM roles WHERE id = ?", [id], (err, deleteResult) => {
+      if (err) {
+        console.error('❌ Error eliminando rol:', err);
+        return res.status(500).json({ message: "Error al eliminar" });
+      }
+      
+      if (deleteResult.affectedRows === 0) {
+        return res.status(404).json({ message: "Rol no encontrado" });
+      }
+      
+      console.log('✅ Rol eliminado');
+      res.json({ message: "Rol eliminado correctamente", id });
+    });
+  });
+});
+
+// ==================== TABLAS DE AUDITORÍA (SOLO LECTURA) ====================
+
+// Obtener todas las vistas de productos
+app.get("/producto-vistas", authenticateToken, (req, res) => {
+  console.log('👁️ Obteniendo vistas de productos');
+  
+  const query = `
+    SELECT 
+      pv.*,
+      u.nombre as usuario_nombre,
+      u.email as usuario_email,
+      p.nombre as producto_nombre
+    FROM producto_vistas pv
+    LEFT JOIN usuarios u ON pv.usuario_id = u.id
+    LEFT JOIN productos p ON pv.producto_id = p.id
+    ORDER BY pv.fecha_vista DESC
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo vistas:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    console.log(`✅ ${results.length} vistas encontradas`);
+    res.json(results);
+  });
+});
+
+// Obtener todas las lecturas de novedades
+app.get("/novedad-lecturas", authenticateToken, (req, res) => {
+  console.log('📖 Obteniendo lecturas de novedades');
+  
+  const query = `
+    SELECT 
+      nl.*,
+      u.nombre as usuario_nombre,
+      u.email as usuario_email,
+      n.titulo as novedad_titulo
+    FROM novedad_lecturas nl
+    LEFT JOIN usuarios u ON nl.usuario_id = u.id
+    LEFT JOIN novedades n ON nl.novedad_id = n.id
+    ORDER BY nl.fecha_lectura DESC
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo lecturas:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    console.log(`✅ ${results.length} lecturas encontradas`);
+    res.json(results);
+  });
+});
+
+// Eliminar usuario (solo para admin)
+app.delete("/usuarios/:id", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  
+  console.log(`🗑️ Eliminando usuario ${id}`);
+  
+  // Verificar que no haya registros dependientes
+  db.query("SELECT COUNT(*) as total FROM productores_productos WHERE usuario_id = ?", [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error verificando dependencias:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (result[0].total > 0) {
+      return res.status(400).json({ 
+        message: `No se puede eliminar el usuario porque tiene ${result[0].total} registro(s) como productor asociado(s)` 
+      });
+    }
+    
+    db.query("DELETE FROM usuarios WHERE id = ?", [id], (err, deleteResult) => {
+      if (err) {
+        console.error('❌ Error eliminando usuario:', err);
+        return res.status(500).json({ message: "Error al eliminar" });
+      }
+      
+      if (deleteResult.affectedRows === 0) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      console.log('✅ Usuario eliminado');
+      res.json({ message: "Usuario eliminado correctamente", id });
+    });
+  });
+});
 
 // PUT - Actualizar usuario por ID (sin modificar rol)
 app.put('/api/usuarios/:id', (req, res) => {
@@ -913,7 +1710,14 @@ app.put('/api/usuarios/:id', (req, res) => {
       }
 
       // Obtener el usuario actualizado
-      db.query('SELECT * FROM usuarios WHERE id = ?', [id], (err, rows) => {
+      db.query(`
+        SELECT 
+          u.*,
+          r.nombre as rol
+        FROM usuarios u
+        LEFT JOIN roles r ON u.rol_id = r.id
+        WHERE u.id = ?
+      `, [id], (err, rows) => {
         if (err) {
           console.error('Error al obtener usuario actualizado:', err);
           return res.status(500).json({ 
@@ -935,8 +1739,9 @@ app.patch('/api/usuarios/:id', (req, res) => {
   const { id } = req.params;
   const campos = req.body;
 
-  // No permitir actualizar el rol
+  // No permitir actualizar el rol_id o rol
   delete campos.rol;
+  delete campos.rol_id;
   delete campos.id;
 
   if (Object.keys(campos).length === 0) {
@@ -968,7 +1773,14 @@ app.patch('/api/usuarios/:id', (req, res) => {
     }
 
     // Obtener el usuario actualizado
-    db.query('SELECT * FROM usuarios WHERE id = ?', [id], (err, rows) => {
+    db.query(`
+      SELECT 
+        u.*,
+        r.nombre as rol
+      FROM usuarios u
+      LEFT JOIN roles r ON u.rol_id = r.id
+      WHERE u.id = ?
+    `, [id], (err, rows) => {
       if (err) {
         console.error('Error al obtener usuario actualizado:', err);
         return res.status(500).json({ 
@@ -998,7 +1810,7 @@ app.get('/api/metricas/admin', (req, res) => {
         db.query(`
           SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN rol IS NOT NULL THEN 1 ELSE 0 END) as activos
+            SUM(CASE WHEN rol_id IS NOT NULL THEN 1 ELSE 0 END) as activos
           FROM usuarios
         `, (err, result) => {
           if (err) {
@@ -1038,10 +1850,11 @@ app.get('/api/metricas/admin', (req, res) => {
       productosCategoria: new Promise((resolve, reject) => {
         db.query(`
           SELECT 
-            categoria,
+            c.nombre as categoria,
             COUNT(*) as cantidad
-          FROM productos
-          GROUP BY categoria
+          FROM productos p
+          LEFT JOIN categorias c ON p.categoria_id = c.id
+          GROUP BY p.categoria_id, c.nombre
           ORDER BY cantidad DESC
         `, (err, results) => {
           if (err) {
@@ -1141,13 +1954,15 @@ app.get('/api/metricas/usuario/:usuarioId', (req, res) => {
     // PASO 1: Verificar que el usuario existe
     db.query(`
       SELECT 
-        id,
-        nombre,
-        email,
-        rol,
-        DATE(fecha_registro) as fecha_registro
-      FROM usuarios
-      WHERE id = ?
+        u.id,
+        u.nombre,
+        u.email,
+        u.rol_id,
+        r.nombre as rol,
+        DATE(u.fecha_registro) as fecha_registro
+      FROM usuarios u
+      LEFT JOIN roles r ON u.rol_id = r.id
+      WHERE u.id = ?
     `, [usuarioId], (err, usuario) => {
       if (err) {
         console.error('❌ [USER METRICS] Error consultando usuario:', err);
@@ -1220,12 +2035,13 @@ app.get('/api/metricas/usuario/:usuarioId', (req, res) => {
         categoriasInteres: new Promise((resolve, reject) => {
           db.query(`
             SELECT 
-              p.categoria,
+              c.nombre as categoria,
               COUNT(*) as interes
             FROM productores_productos pp
             JOIN productos p ON pp.producto_id = p.id
+            LEFT JOIN categorias c ON p.categoria_id = c.id
             WHERE pp.usuario_id = ?
-            GROUP BY p.categoria
+            GROUP BY p.categoria_id, c.nombre
             ORDER BY interes DESC
             LIMIT 5
           `, [usuarioId], (err, results) => {
@@ -1441,6 +2257,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`   GET    /usuarios`);
   console.log(`   GET    /usuarios/:id`);
   console.log(`   PUT    /usuarios/:id`);
+  console.log(`   DELETE /usuarios/:id`);
   console.log(`\n📰 NOVEDADES:`);
   console.log(`   GET    /novedades`);
   console.log(`   POST   /novedades`);
@@ -1457,6 +2274,23 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`   POST   /productores-productos`);
   console.log(`   GET    /productores-productos/usuario/:usuario_id`);
   console.log(`   GET    /productores-productos/producto/:producto_id`);
+  console.log(`   PUT    /productores-productos/:id`);
+  console.log(`   DELETE /productores-productos/:id`);
+  console.log(`\n📂 CATEGORÍAS:`);
+  console.log(`   GET    /categorias`);
+  console.log(`   GET    /categorias/:id`);
+  console.log(`   POST   /categorias`);
+  console.log(`   PUT    /categorias/:id`);
+  console.log(`   DELETE /categorias/:id`);
+  console.log(`\n🛡️ ROLES:`);
+  console.log(`   GET    /roles`);
+  console.log(`   GET    /roles/:id`);
+  console.log(`   POST   /roles`);
+  console.log(`   PUT    /roles/:id`);
+  console.log(`   DELETE /roles/:id`);
+  console.log(`\n👁️ AUDITORÍA (Solo lectura):`);
+  console.log(`   GET    /producto-vistas`);
+  console.log(`   GET    /novedad-lecturas`);
   console.log('\n✅ Servidor listo para recibir peticiones\n');
 });
 

@@ -70,8 +70,22 @@ export const API_ENDPOINTS = {
   
   // Productores-Productos
   PRODUCTORES_PRODUCTOS: `${API_BASE_URL}/productores-productos`,
+  PRODUCTOR_PRODUCTO_BY_ID: (id) => `${API_BASE_URL}/productores-productos/${id}`,
+  ES_PRODUCTOR: (usuario_id) => `${API_BASE_URL}/productores-productos/es-productor/${usuario_id}`,
   PRODUCTOS_BY_USUARIO: (usuario_id) => `${API_BASE_URL}/productores-productos/usuario/${usuario_id}`,
   PRODUCTORES_BY_PRODUCTO: (producto_id) => `${API_BASE_URL}/productores-productos/producto/${producto_id}`,
+  
+  // Categorías
+  CATEGORIAS: `${API_BASE_URL}/categorias`,
+  CATEGORIA_BY_ID: (id) => `${API_BASE_URL}/categorias/${id}`,
+  
+  // Roles
+  ROLES: `${API_BASE_URL}/roles`,
+  ROL_BY_ID: (id) => `${API_BASE_URL}/roles/${id}`,
+  
+  // Tablas de auditoría (solo lectura)
+  PRODUCTO_VISTAS: `${API_BASE_URL}/producto-vistas`,
+  NOVEDAD_LECTURAS: `${API_BASE_URL}/novedad-lecturas`,
   
   // Rutas (si las tienes)
   RUTAS: `${API_BASE_URL}/rutas`,

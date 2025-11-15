@@ -21,6 +21,11 @@ export default function RootLayout() {
           <Stack.Screen name="producto-detalle/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="mi-actividad" options={{ headerShown: false }} />
           <Stack.Screen name="metricas-admin" options={{ headerShown: false }} />
+          <Stack.Screen name="seleccionar-producto" options={{ headerShown: false }} />
+          <Stack.Screen name="registro-productor" options={{ headerShown: false }} />
+          <Stack.Screen name="mis-productos" options={{ headerShown: false }} />
+          <Stack.Screen name="admin-panel" options={{ headerShown: false }} />
+          <Stack.Screen name="admin-crud/[tabla]" options={{ headerShown: false }} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { API_ENDPOINTS, apiRequest } from '../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -53,66 +55,80 @@ export default function MetricasAdmin() {
     try {
       setLoading(true);
 
-      // Simular administrador guardado
-      let adminGuardado = await AsyncStorage.getItem('adminGuardado');
-      if (!adminGuardado) {
-        adminGuardado = JSON.stringify({
-          id: 1,
-          nombre: "Gustavo Mena",
-          email: "gustavomena@gmail.com",
-          rol: "Administrador",
-        });
-        await AsyncStorage.setItem('adminGuardado', adminGuardado);
+      // Cargar usuario logueado desde AsyncStorage
+      const usuarioData = await AsyncStorage.getItem('usuarioLogueado');
+      if (usuarioData) {
+        const usuario = JSON.parse(usuarioData);
+        console.log('👨‍💼 Usuario cargado:', usuario.nombre);
+        setAdmin(usuario);
       }
 
-      const adminData = JSON.parse(adminGuardado);
-      console.log('👨‍💼 Administrador cargado:', adminData.nombre);
-      setAdmin(adminData);
-
-      await cargarMetricasSimuladas();
+      // Cargar métricas reales desde el backend
+      await cargarMetricasReales();
     } catch (error) {
       console.error('❌ Error cargando admin:', error);
+      Alert.alert(
+        'Error',
+        'No se pudieron cargar las métricas. Verifica tu conexión al servidor.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Función simulada sin conexión a backend
-  const cargarMetricasSimuladas = async () => {
-    console.log("📊 Cargando métricas locales del administrador...");
+  // Función para cargar métricas reales desde el backend
+  const cargarMetricasReales = async () => {
+    try {
+      console.log("📊 Cargando métricas del administrador desde el servidor...");
 
-    const metricasFalsas = {
-      totalUsuarios: 58,
-      usuariosActivos: 46,
-      totalProductos: 123,
-      totalNovedades: 15,
-      actividadReciente: {
-        vistasProductos: 350,
-        lecturasNovedades: 120,
-        registrosNuevos: 8,
-      },
-      productosCategoria: [
-        { categoria: 'Cacao', cantidad: 40 },
-        { categoria: 'Plátano', cantidad: 25 },
-        { categoria: 'Cítricos', cantidad: 18 },
-        { categoria: 'Yuca', cantidad: 15 },
-        { categoria: 'Otros', cantidad: 25 },
-      ],
-      novedadesMes: [
-        { mes: 'Ene', cantidad: 3 },
-        { mes: 'Feb', cantidad: 4 },
-        { mes: 'Mar', cantidad: 5 },
-        { mes: 'Abr', cantidad: 2 },
-        { mes: 'May', cantidad: 1 },
-      ],
-      ultimaActualizacion: new Date().toISOString(),
-    };
+      const response = await apiRequest(API_ENDPOINTS.METRICAS_ADMIN, {
+        method: 'GET',
+      });
 
-    // Simula un retardo de red
-    await new Promise(resolve => setTimeout(resolve, 800));
+      if (response.success && response.data) {
+        const data = response.data;
+        
+        // Formatear las métricas para el componente
+        const metricasFormateadas = {
+          totalUsuarios: data.totalUsuarios || 0,
+          usuariosActivos: data.usuariosActivos || 0,
+          totalProductos: data.totalProductos || 0,
+          totalNovedades: data.totalNovedades || 0,
+          actividadReciente: {
+            vistasProductos: data.actividadReciente?.vistasProductos || 0,
+            lecturasNovedades: data.actividadReciente?.lecturasNovedades || 0,
+            registrosNuevos: data.actividadReciente?.registrosNuevos || 0,
+          },
+          productosCategoria: data.productosCategoria || [],
+          novedadesMes: data.novedadesMes || [],
+          ultimaActualizacion: new Date().toISOString(),
+        };
 
-    setMetricas(metricasFalsas);
+        console.log('✅ Métricas cargadas exitosamente:', metricasFormateadas);
+        setMetricas(metricasFormateadas);
+      } else {
+        throw new Error('Respuesta inválida del servidor');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando métricas:', error);
+      // Si falla, mostrar datos vacíos en lugar de datos simulados
+      setMetricas({
+        totalUsuarios: 0,
+        usuariosActivos: 0,
+        totalProductos: 0,
+        totalNovedades: 0,
+        actividadReciente: {
+          vistasProductos: 0,
+          lecturasNovedades: 0,
+          registrosNuevos: 0,
+        },
+        productosCategoria: [],
+        novedadesMes: [],
+        ultimaActualizacion: new Date().toISOString(),
+      });
+    }
   };
 
   if (loading) {
@@ -124,8 +140,12 @@ export default function MetricasAdmin() {
     );
   }
 
-  const maxProductos = Math.max(...metricas.productosCategoria.map(p => p.cantidad), 1);
-  const maxNovedades = Math.max(...metricas.novedadesMes.map(n => n.cantidad), 1);
+  const maxProductos = metricas.productosCategoria.length > 0 
+    ? Math.max(...metricas.productosCategoria.map(p => p.cantidad), 1) 
+    : 1;
+  const maxNovedades = metricas.novedadesMes.length > 0 
+    ? Math.max(...metricas.novedadesMes.map(n => n.cantidad), 1) 
+    : 1;
 
   return (
     <View style={styles.container}>

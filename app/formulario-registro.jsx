@@ -63,23 +63,15 @@ export default function FormularioRegistro() {
 
       setIsLoading(false);
 
-      // Guardar usuario y token en AsyncStorage
-      const { token, ...usuarioData } = data;
-      
-      await AsyncStorage.setItem('usuarioLogueado', JSON.stringify(usuarioData));
-      
-      // Guardar el token por separado para el interceptor
-      if (token) {
-        await AsyncStorage.setItem('token', token);
-        console.log('🔑 Token guardado en AsyncStorage');
-      }
+      // NO guardar usuario ni token automáticamente después del registro
+      // El usuario debe iniciar sesión manualmente
 
       Alert.alert(
         '¡Registro exitoso!',
-        `Bienvenido ${data.nombre}. Tu cuenta ha sido creada correctamente.\n.`,
+        `Tu cuenta ha sido creada correctamente. Por favor inicia sesión para continuar.`,
         [{ 
-          text: 'Continuar', 
-          onPress: () => router.push('novedades') 
+          text: 'Iniciar sesión', 
+          onPress: () => router.replace('/inicio-sesion')
         }]
       );
 
