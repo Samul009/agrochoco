@@ -52,6 +52,16 @@ export default function Novedades() {
       const data = await apiRequest(API_ENDPOINTS.NOVEDADES, {
         method: 'GET'
       });
+      
+      // Log para debugging: verificar imágenes
+      data.forEach(novedad => {
+        if (novedad.imagen) {
+          const tipoImagen = novedad.imagen.startsWith('data:image') ? 'BASE64' : 
+                            novedad.imagen.startsWith('http') ? 'URL' : 'OTRO';
+          console.log(`📸 Novedad ${novedad.id}: Imagen tipo ${tipoImagen}, longitud: ${novedad.imagen.length}`);
+        }
+      });
+      
       setNovedades(data);
     } catch (error) {
       console.error('Error cargando novedades:', error);

@@ -14,7 +14,8 @@ app.use(express.json());
 const JWT_SECRET = process.env.JWT_SECRET || 'oZl2AafeMwghHKrILR4BImeFoJKYxW8CUKmcH2jbsTwDk22c_9mcV2JlptxkqNM3fTzfV8s_zwcRYXu-ohb4pg';
 const ALGORITMO = process.env.JWT_ALGORITMO || 'HS256'; 
 const MINUTOS_EXPIRACION_TOKEN = process.env.JWT_EXPIRES_MINUTES || 60; 
-const JWT_EXPIRES_IN = `${MINUTOS_EXPIRACION_TOKEN}m`; 
+const JWT_EXPIRES_IN = `${MINUTOS_EXPIRACION_TOKEN}m`;
+const MASTER_KEY = process.env.MASTER_KEY || 'agrochoco_master_key_2024_secret'; 
 // =============================================================
 
 // ==================== MIDDLEWARE DE AUTENTICACIÓN ====================
@@ -477,6 +478,18 @@ app.get("/novedades", (req, res) => {
       return res.json([]);
     }
     
+    // Log para debugging: verificar imágenes
+    results.forEach(novedad => {
+      if (novedad.imagen) {
+        const tipo = novedad.imagen.startsWith('data:image') ? 'BASE64' : 
+                    novedad.imagen.startsWith('http') ? 'URL' : 'OTRO';
+        console.log(`📸 Backend - Novedad ${novedad.id}: tipo ${tipo}, longitud: ${novedad.imagen ? novedad.imagen.length : 0}`);
+        if (novedad.imagen && novedad.imagen.length > 500 && tipo === 'BASE64') {
+          console.log(`⚠️ ADVERTENCIA: Imagen base64 muy grande (${novedad.imagen.length} caracteres) - posible truncamiento si la columna es VARCHAR(500)`);
+        }
+      }
+    });
+    
     console.log(`✅ ${results.length} novedades encontradas`);
     res.json(results);
   });
@@ -514,11 +527,27 @@ app.post("/novedades", authenticateToken, (req, res) => {
     return res.status(400).json({ message: "Título y descripción son requeridos" });
   }
 
+  // Log para debugging: verificar tamaño de imagen
+  if (imagen) {
+    const tipo = imagen.startsWith('data:image') ? 'BASE64' : 
+                imagen.startsWith('http') ? 'URL' : 'OTRO';
+    console.log(`📸 Creando novedad - Imagen tipo: ${tipo}, longitud: ${imagen.length}`);
+    if (imagen.length > 500 && tipo === 'BASE64') {
+      console.log(`⚠️ ADVERTENCIA: Imagen base64 muy grande (${imagen.length} caracteres). Verifica que la columna sea TEXT o LONGTEXT, no VARCHAR(500)`);
+    }
+  }
+
   const query = "INSERT INTO novedades (titulo, descripcion, imagen) VALUES (?, ?, ?)";
   
   db.query(query, [titulo, descripcion, imagen || null], (err, result) => {
     if (err) {
       console.error('❌ Error creando novedad:', err);
+      // Si el error es por truncamiento de datos
+      if (err.code === 'ER_DATA_TOO_LONG') {
+        return res.status(400).json({ 
+          message: "La imagen es demasiado grande. La columna 'imagen' necesita ser de tipo TEXT o LONGTEXT, no VARCHAR(500)." 
+        });
+      }
       return res.status(500).json({ message: "Error al crear novedad" });
     }
     
@@ -2292,8 +2321,10 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`📱 Para emulador/Android, usa: http://10.0.2.2:${PORT}`);
   console.log(`📱 Para dispositivo físico, usa la IP de tu red: http://${localIP}:${PORT}`);
   console.log(`📱 O configura en config/api.js: EXPO_PUBLIC_API_URL=http://${localIP}:${PORT}`);
-  console.log(`\n🔑 LLAVE MAESTRA CONFIGURADA: ${MASTER_KEY.substring(0, 10)}...`);
-  console.log(`   (Úsala para crear administradores o migrar usuarios)`);
+  if (MASTER_KEY) {
+    console.log(`\n🔑 LLAVE MAESTRA CONFIGURADA: ${MASTER_KEY.substring(0, 10)}...`);
+    console.log(`   (Úsala para crear administradores o migrar usuarios)`);
+  }
   console.log(`\n🔐 JWT CONFIGURADO:`);
   console.log(`   Algoritmo: ${ALGORITMO}`);
   console.log(`   Expiración: ${MINUTOS_EXPIRACION_TOKEN} minutos (~${Math.round(MINUTOS_EXPIRACION_TOKEN / 1440)} días)`);

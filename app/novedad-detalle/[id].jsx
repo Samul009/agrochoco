@@ -13,6 +13,7 @@ export default function NovedadDetalle() {
   const [novedad, setNovedad] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -122,11 +123,26 @@ export default function NovedadDetalle() {
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Imagen principal */}
         <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: novedad.imagen || 'https://via.placeholder.com/800x400?text=Sin+Imagen' }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          {!imageError && novedad.imagen && (novedad.imagen.startsWith('http') || novedad.imagen.startsWith('data:image')) ? (
+            <Image
+              source={{ uri: novedad.imagen }}
+              style={styles.image}
+              resizeMode="cover"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="image-outline" size={64} color="#999" />
+              <Text style={styles.imagePlaceholderText}>
+                {novedad.imagen && !imageError ? 'Error cargando imagen' : 'Sin imagen'}
+              </Text>
+              {novedad.imagen && !imageError && (
+                <Text style={styles.imageErrorText}>
+                  La URL de la imagen no es válida o no está disponible
+                </Text>
+              )}
+            </View>
+          )}
           {novedad.autor_nombre && (
             <View style={styles.authorBadge}>
               <Ionicons name="person-circle" size={16} color="#fff" />
@@ -249,6 +265,26 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#999',
+    fontWeight: '500',
+  },
+  imageErrorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#d32f2f',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   authorBadge: {
     position: 'absolute',

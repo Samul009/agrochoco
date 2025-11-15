@@ -1,10 +1,12 @@
 // app/formulario-novedad.jsx
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Alert, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, PaperProvider, MD3LightTheme, HelperText, Card } from 'react-native-paper';
+import { ScrollView, View, Alert, StyleSheet, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
+import { Text, TextInput, Button, PaperProvider, MD3LightTheme, HelperText, Card, SegmentedButtons } from 'react-native-paper';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { API_ENDPOINTS, apiRequest } from '../config/api';
 
 export default function FormularioNovedad() {
@@ -18,6 +20,11 @@ export default function FormularioNovedad() {
   const [isEdit, setIsEdit] = useState(false);
   const [usuario, setUsuario] = useState(null);
   
+  // Estados para imagen
+  const [tipoImagen, setTipoImagen] = useState('url'); // 'url' o 'subir'
+  const [imagenLocal, setImagenLocal] = useState(null); // URI local de la imagen
+  const [imagenBase64, setImagenBase64] = useState(null); // Base64 de la imagen
+  
   // Estados para validación
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -30,7 +37,17 @@ export default function FormularioNovedad() {
       setIsEdit(true);
       setTitulo(params.titulo || '');
       setDescripcion(params.descripcion || '');
-      setImagen(params.imagen || '');
+      const imagenParam = params.imagen || '';
+      // Detectar si es una URL o una imagen base64/data URI
+      if (imagenParam.startsWith('data:image') || imagenParam.startsWith('http://') || imagenParam.startsWith('https://')) {
+        if (imagenParam.startsWith('data:image')) {
+          setTipoImagen('subir');
+          setImagenBase64(imagenParam);
+        } else {
+          setTipoImagen('url');
+          setImagen(imagenParam);
+        }
+      }
     }
   }, [params]);
 
@@ -71,7 +88,7 @@ export default function FormularioNovedad() {
         break;
         
       case 'imagen':
-        if (valor.trim() && !isValidUrl(valor.trim())) {
+        if (tipoImagen === 'url' && valor.trim() && !isValidUrl(valor.trim()) && !valor.trim().startsWith('data:image')) {
           error = 'La URL de la imagen no es válida';
         }
         break;
@@ -84,7 +101,36 @@ export default function FormularioNovedad() {
   const isValidUrl = (url) => {
     try {
       const urlObj = new URL(url);
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+      // Verificar que sea HTTP o HTTPS
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+        return false;
+      }
+      
+      // Verificar que sea una URL directa de imagen
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+      const pathname = urlObj.pathname.toLowerCase();
+      
+      // Si termina con extensión de imagen, es válida
+      const hasImageExtension = imageExtensions.some(ext => pathname.endsWith(ext));
+      
+      // Si no tiene extensión pero contiene palabras clave de imágenes comunes, podría ser válida
+      
+      const hasImageKeywords = /\/(image|img|photo|pic|picture|foto)\//i.test(pathname);
+      
+      // También aceptar data URIs (base64)
+      if (url.startsWith('data:image')) {
+        return true;
+      }
+      
+      // Si es una URL de servicios comunes que sirven imágenes directamente
+      // (por ejemplo: imgur, i.imgur.com, etc.)
+      const imageHosts = ['i.imgur.com', 'imgur.com', 'i.redd.it', 'unsplash.com', 'images.unsplash.com'];
+      const hostname = urlObj.hostname.toLowerCase();
+      if (imageHosts.some(host => hostname.includes(host))) {
+        return true;
+      }
+      
+      return hasImageExtension || hasImageKeywords;
     } catch {
       return false;
     }
@@ -109,7 +155,17 @@ export default function FormularioNovedad() {
   const validarFormulario = () => {
     const tituloValido = validarCampo('titulo', titulo);
     const descripcionValida = validarCampo('descripcion', descripcion);
-    const imagenValida = validarCampo('imagen', imagen);
+    
+    // Validar imagen según el tipo seleccionado
+    let imagenValida = true;
+    if (tipoImagen === 'url') {
+      imagenValida = validarCampo('imagen', imagen);
+    } else if (tipoImagen === 'subir' && !imagenBase64) {
+      setErrors(prev => ({ ...prev, imagen: 'Debes subir una imagen' }));
+      imagenValida = false;
+    } else {
+      setErrors(prev => ({ ...prev, imagen: '' }));
+    }
     
     setTouched({
       titulo: true,
@@ -153,10 +209,18 @@ export default function FormularioNovedad() {
     setIsLoading(true);
 
     try {
+      // Determinar qué imagen enviar según el tipo seleccionado
+      let imagenFinal = null;
+      if (tipoImagen === 'url') {
+        imagenFinal = imagen.trim() || null;
+      } else if (tipoImagen === 'subir' && imagenBase64) {
+        imagenFinal = imagenBase64;
+      }
+
       const novedadData = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
-        imagen: imagen.trim() || null,
+        imagen: imagenFinal,
         usuario_id: usuario?.id || null
       };
 
@@ -201,6 +265,9 @@ export default function FormularioNovedad() {
                 setTitulo('');
                 setDescripcion('');
                 setImagen('');
+                setImagenLocal(null);
+                setImagenBase64(null);
+                setTipoImagen('url');
                 setTouched({});
                 setErrors({});
               }
@@ -236,7 +303,7 @@ export default function FormularioNovedad() {
   };
 
   const handleCancel = () => {
-    if (titulo.trim() || descripcion.trim() || imagen.trim()) {
+    if (titulo.trim() || descripcion.trim() || imagen.trim() || imagenBase64) {
       Alert.alert(
         'Descartar cambios',
         '¿Estás seguro de que deseas salir? Los cambios no guardados se perderán.',
@@ -259,6 +326,158 @@ export default function FormularioNovedad() {
 
   const contadorCaracteres = (texto, max) => {
     return `${texto.length}/${max}`;
+  };
+
+  // Función para seleccionar imagen de la galería
+  const seleccionarImagen = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permisos necesarios',
+          'Necesitamos permisos para acceder a tu galería de fotos'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageAsset = result.assets[0];
+        const imageUri = imageAsset.uri;
+        
+        if (!imageUri) {
+          Alert.alert('Error', 'No se pudo obtener la imagen');
+          return;
+        }
+
+        setImagenLocal(imageUri);
+        
+        // Convertir imagen a base64
+        try {
+          // Verificar que el URI existe y es accesible
+          const fileInfo = await FileSystem.getInfoAsync(imageUri);
+          if (!fileInfo.exists) {
+            throw new Error('El archivo de imagen no existe');
+          }
+
+          // Usar la sintaxis de string para encoding (más compatible)
+          // Verificar si EncodingType existe, si no usar string directamente
+          let encodingOption;
+          if (FileSystem.EncodingType && FileSystem.EncodingType.Base64) {
+            encodingOption = FileSystem.EncodingType.Base64;
+          } else {
+            encodingOption = 'base64';
+          }
+          
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: encodingOption,
+          });
+          
+          // Determinar el tipo MIME basado en la extensión o tipo del asset
+          const mimeType = imageAsset.mimeType || 'image/jpeg';
+          const imageBase64 = `data:${mimeType};base64,${base64}`;
+          
+          setImagenBase64(imageBase64);
+          setErrors(prev => ({ ...prev, imagen: '' }));
+        } catch (error) {
+          console.error('Error convirtiendo imagen a base64:', error);
+          setImagenLocal(null);
+          Alert.alert(
+            'Error', 
+            error.message || 'No se pudo procesar la imagen. Por favor, intenta con otra imagen.'
+          );
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+      console.error(error);
+    }
+  };
+
+  // Función para tomar foto con la cámara
+  const tomarFoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permisos necesarios',
+          'Necesitamos permisos para acceder a tu cámara'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageAsset = result.assets[0];
+        const imageUri = imageAsset.uri;
+        
+        if (!imageUri) {
+          Alert.alert('Error', 'No se pudo obtener la imagen');
+          return;
+        }
+
+        setImagenLocal(imageUri);
+        
+        // Convertir imagen a base64
+        try {
+          // Verificar que el URI existe y es accesible
+          const fileInfo = await FileSystem.getInfoAsync(imageUri);
+          if (!fileInfo.exists) {
+            throw new Error('El archivo de imagen no existe');
+          }
+
+          // Usar la sintaxis de string para encoding (más compatible)
+          // Verificar si EncodingType existe, si no usar string directamente
+          let encodingOption;
+          if (FileSystem.EncodingType && FileSystem.EncodingType.Base64) {
+            encodingOption = FileSystem.EncodingType.Base64;
+          } else {
+            encodingOption = 'base64';
+          }
+          
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: encodingOption,
+          });
+          
+          // Determinar el tipo MIME basado en la extensión o tipo del asset
+          const mimeType = imageAsset.mimeType || 'image/jpeg';
+          const imageBase64 = `data:${mimeType};base64,${base64}`;
+          
+          setImagenBase64(imageBase64);
+          setErrors(prev => ({ ...prev, imagen: '' }));
+        } catch (error) {
+          console.error('Error convirtiendo imagen a base64:', error);
+          setImagenLocal(null);
+          Alert.alert(
+            'Error', 
+            error.message || 'No se pudo procesar la imagen. Por favor, intenta con otra imagen.'
+          );
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo tomar la foto');
+      console.error(error);
+    }
+  };
+
+  // Función para eliminar imagen subida
+  const eliminarImagen = () => {
+    setImagenLocal(null);
+    setImagenBase64(null);
+    setErrors(prev => ({ ...prev, imagen: '' }));
   };
 
   return (
@@ -370,32 +589,130 @@ export default function FormularioNovedad() {
               )}
             </View>
 
-            {/* Campo Imagen (URL) */}
+            {/* Campo Imagen */}
             <View style={styles.fieldContainer}>
-              <TextInput
-                label="URL de la imagen (opcional)"
-                value={imagen}
-                onChangeText={(text) => {
-                  setImagen(text);
-                  if (touched.imagen) validarCampo('imagen', text);
-                }}
-                onBlur={() => handleBlur('imagen')}
-                mode="outlined"
-                error={touched.imagen && !!errors.imagen}
-                placeholder="https://ejemplo.com/imagen.jpg"
-                autoCapitalize="none"
-                keyboardType="url"
-                left={<TextInput.Icon icon="image" />}
-                disabled={isLoading}
-              />
-              <HelperText type="error" visible={touched.imagen && !!errors.imagen}>
-                {errors.imagen}
-              </HelperText>
-              {!errors.imagen && (
-                <HelperText type="info">
-                  Usa imágenes de alta calidad en formato JPG o PNG
-                </HelperText>
-              )}
+              <Card style={styles.imageCard}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.imageCardTitle}>
+                    Imagen de la novedad (opcional)
+                  </Text>
+                  
+                  {/* Selector de tipo de imagen */}
+                  <SegmentedButtons
+                    value={tipoImagen}
+                    onValueChange={(value) => {
+                      setTipoImagen(value);
+                      // Limpiar errores al cambiar de tipo
+                      setErrors(prev => ({ ...prev, imagen: '' }));
+                      if (value === 'url') {
+                        setImagenLocal(null);
+                        setImagenBase64(null);
+                      } else {
+                        setImagen('');
+                      }
+                    }}
+                    buttons={[
+                      {
+                        value: 'url',
+                        label: 'URL',
+                        icon: 'link',
+                      },
+                      {
+                        value: 'subir',
+                        label: 'Subir',
+                        icon: 'image',
+                      },
+                    ]}
+                    style={styles.segmentedButtons}
+                  />
+
+                  {/* Campo URL (si está seleccionado) */}
+                  {tipoImagen === 'url' && (
+                    <View style={styles.urlContainer}>
+                      <TextInput
+                        label="URL de la imagen"
+                        value={imagen}
+                        onChangeText={(text) => {
+                          setImagen(text);
+                          if (touched.imagen) validarCampo('imagen', text);
+                        }}
+                        onBlur={() => handleBlur('imagen')}
+                        mode="outlined"
+                        error={touched.imagen && !!errors.imagen}
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        autoCapitalize="none"
+                        keyboardType="url"
+                        left={<TextInput.Icon icon="image" />}
+                        disabled={isLoading}
+                        style={styles.urlInput}
+                      />
+                      <HelperText type="error" visible={touched.imagen && !!errors.imagen}>
+                        {errors.imagen}
+                      </HelperText>
+                      {!errors.imagen && (
+                        <HelperText type="info">
+                          Ingresa la URL directa de la imagen (debe terminar en .jpg, .png, etc.)
+                        </HelperText>
+                      )}
+                      {!errors.imagen && (
+                        <HelperText type="info" style={{ marginTop: 4, fontSize: 12 }}>
+                          ⚠️ No uses URLs de páginas (Pinterest, Facebook, etc.). Necesitas la URL directa de la imagen.
+                        </HelperText>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Opciones de subir imagen (si está seleccionado) */}
+                  {tipoImagen === 'subir' && (
+                    <View style={styles.uploadContainer}>
+                      {imagenLocal || imagenBase64 ? (
+                        <View style={styles.imagePreviewContainer}>
+                          <Image
+                            source={{ uri: imagenLocal || imagenBase64 }}
+                            style={styles.imagePreview}
+                            resizeMode="cover"
+                          />
+                          <TouchableOpacity
+                            style={styles.removeImageButton}
+                            onPress={eliminarImagen}
+                          >
+                            <Ionicons name="close-circle" size={24} color="#d32f2f" />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={styles.uploadButtonsContainer}>
+                          <Button
+                            mode="outlined"
+                            onPress={seleccionarImagen}
+                            disabled={isLoading}
+                            icon="image"
+                            style={styles.uploadButton}
+                          >
+                            Seleccionar de Galería
+                          </Button>
+                          <Button
+                            mode="outlined"
+                            onPress={tomarFoto}
+                            disabled={isLoading}
+                            icon="camera"
+                            style={styles.uploadButton}
+                          >
+                            Tomar Foto
+                          </Button>
+                        </View>
+                      )}
+                      <HelperText type="error" visible={touched.imagen && !!errors.imagen}>
+                        {errors.imagen}
+                      </HelperText>
+                      {!errors.imagen && !imagenBase64 && (
+                        <HelperText type="info">
+                          Selecciona una imagen de tu galería o toma una foto
+                        </HelperText>
+                      )}
+                    </View>
+                  )}
+                </Card.Content>
+              </Card>
             </View>
 
             {/* Botones de acción */}
@@ -497,5 +814,52 @@ const styles = StyleSheet.create({
   submitButtonLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  imageCard: {
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  imageCardTitle: {
+    marginBottom: 16,
+    color: '#2e7d32',
+    fontWeight: '600',
+  },
+  segmentedButtons: {
+    marginBottom: 16,
+  },
+  urlContainer: {
+    marginTop: 8,
+  },
+  urlInput: {
+    backgroundColor: '#fff',
+  },
+  uploadContainer: {
+    marginTop: 8,
+  },
+  uploadButtonsContainer: {
+    gap: 12,
+  },
+  uploadButton: {
+    marginBottom: 8,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 2,
   },
 });

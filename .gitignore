@@ -37,3 +37,7 @@ yarn-error.*
 
 app-example
 .DS_Store
+
+
+.github/instructions/kluster-code-verify.instructions.md
+.kluster

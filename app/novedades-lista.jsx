@@ -1,6 +1,6 @@
 // app/novedades-lista.jsx
-import React, { useState } from "react";
-import { ScrollView, RefreshControl, Alert, View, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ScrollView, RefreshControl, Alert, View, TouchableOpacity, Image } from "react-native";
 import { Card, Text, IconButton, Menu } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,23 @@ export default function NovedadesList({ novedades, esAdmin, onDelete, onEdit, on
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
+  
+  // Debug: verificar imágenes cuando cambian las novedades
+  useEffect(() => {
+    novedades.forEach(novedad => {
+      if (novedad.imagen) {
+        const esBase64 = novedad.imagen.startsWith('data:image');
+        const esUrl = novedad.imagen.startsWith('http');
+        console.log(`📸 Novedad ${novedad.id}:`, {
+          tieneImagen: !!novedad.imagen,
+          tipo: esBase64 ? 'BASE64' : esUrl ? 'URL' : 'OTRO',
+          longitud: novedad.imagen.length,
+          preview: novedad.imagen.substring(0, 50) + '...'
+        });
+      }
+    });
+  }, [novedades]);
 
   const openMenu = (id) => setMenuVisible({ ...menuVisible, [id]: true });
   const closeMenu = (id) => setMenuVisible({ ...menuVisible, [id]: false });
@@ -71,10 +88,78 @@ export default function NovedadesList({ novedades, esAdmin, onDelete, onEdit, on
             onPress={() => verDetalle(item.id)}
           >
             <Card style={{ margin: 10, borderRadius: 12, elevation: 2 }}>
-              <Card.Cover 
-                source={{ uri: item.imagen || 'https://via.placeholder.com/400x200?text=Sin+Imagen' }} 
-                style={{ height: 180 }} 
-              />
+              {(() => {
+                // Función helper para verificar si es una imagen válida
+                const imagenUrl = item.imagen ? item.imagen.trim() : null;
+                const tieneImagenValida = imagenUrl && 
+                  (imagenUrl.startsWith('http://') || 
+                   imagenUrl.startsWith('https://') || 
+                   imagenUrl.startsWith('data:image'));
+                
+                // Log para debugging
+                if (imagenUrl && !tieneImagenValida) {
+                  console.log('⚠️ Novedad', item.id, 'tiene imagen pero formato no válido:', imagenUrl.substring(0, 50));
+                }
+                
+                if (!imageErrors[item.id] && tieneImagenValida) {
+                  // Para imágenes base64, asegurarse de que el formato sea correcto
+                  let uriFinal = imagenUrl;
+                  if (imagenUrl.startsWith('data:image')) {
+                    // Asegurarse de que no haya espacios o caracteres extraños
+                    uriFinal = imagenUrl.trim();
+                    // Si el formato base64 tiene problemas, intentar repararlo
+                    if (!uriFinal.includes(';base64,')) {
+                      uriFinal = uriFinal.replace(/^data:image\/([^;]+);/, 'data:image/$1;base64,');
+                    }
+                  }
+                  
+                  return (
+                    <Image
+                      key={`image-${item.id}-${imageErrors[item.id] ? 'error' : 'ok'}`}
+                      source={{ uri: uriFinal }}
+                      style={{ height: 180, width: '100%', backgroundColor: '#f0f0f0' }}
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.log('❌ Error cargando imagen para novedad', item.id);
+                        console.log('❌ URI length:', uriFinal?.length);
+                        console.log('❌ URI preview:', uriFinal?.substring(0, 100));
+                        console.log('❌ Tipo:', uriFinal?.startsWith('data:image') ? 'BASE64' : 'URL');
+                        console.log('❌ Error details:', error.nativeEvent);
+                        setImageErrors(prev => ({ ...prev, [item.id]: true }));
+                      }}
+                      onLoadStart={() => {
+                        console.log('🔄 Iniciando carga de imagen para novedad', item.id);
+                        console.log('🔄 Tipo:', uriFinal?.startsWith('data:image') ? 'BASE64' : 'URL');
+                        console.log('🔄 Longitud:', uriFinal?.length);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Imagen cargada correctamente para novedad', item.id);
+                      }}
+                    />
+                  );
+                } else {
+                  return (
+                    <View style={{ 
+                      height: 180, 
+                      backgroundColor: '#e0e0e0', 
+                      justifyContent: 'center', 
+                      alignItems: 'center' 
+                    }}>
+                      <Ionicons name="image-outline" size={48} color="#999" />
+                      <Text style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+                        {tieneImagenValida && imageErrors[item.id] 
+                          ? 'Error cargando' 
+                          : 'Sin imagen'}
+                      </Text>
+                      {imagenUrl && !tieneImagenValida && (
+                        <Text style={{ marginTop: 4, color: '#ff9800', fontSize: 10 }}>
+                          Formato no válido
+                        </Text>
+                      )}
+                    </View>
+                  );
+                }
+              })()}
               <Card.Content>
                 <View style={{ 
                   flexDirection: 'row', 
