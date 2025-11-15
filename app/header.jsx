@@ -9,7 +9,7 @@ export default function Header({
   onSearch, 
   onMenuPress,
   screenType = "novedades",
-  showFilters = true, // Nuevo: controlar si se muestran los filtros
+  showFilters = true, 
   onFiltersApply,
   activeFilters = {},
   onClearFilters

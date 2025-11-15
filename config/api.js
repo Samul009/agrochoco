@@ -2,18 +2,52 @@
 // Configuración centralizada para la API
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-// ⚠️ IMPORTANTE: Cambia esta IP según tu red actual
-// Para obtener tu IP local: ejecuta 'ipconfig' en Windows o 'ifconfig' en Mac/Linux
-// El servidor de conexión a la base de datos corre en el puerto 8000
-const API_BASE_URL = 'http://192.168.1.14:8000';
+// Configuración automática de la URL base según la plataforma
+// IMPORTANTE: El servidor backend debe estar configurado con app.listen(PORT, "0.0.0.0")
+// para escuchar en todas las interfaces. El 0.0.0.0 solo funciona en el servidor, no en el cliente.
+// 
+// Para el cliente (app móvil):
+// - Emulador Android: usa 10.0.2.2 (dirección especial que apunta a la máquina host)
+// - Emulador iOS/Web: usa localhost
+// - Dispositivo físico: usa la IP real de tu máquina en la red local
+const getApiBaseUrl = () => {
+  // Si hay una variable de entorno, úsala (prioridad máxima)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  // Detectar plataforma y usar la IP apropiada
+  if (Platform.OS === 'android') {
+    // Para emulador Android: 10.0.2.2 siempre apunta a la máquina host (donde corre el servidor)
+    // Para dispositivo físico Android: necesitas usar la IP real de tu máquina
+    // Ejemplo: 'http://192.168.1.14:8000'
+    // Puedes ver tu IP ejecutando: ipconfig (Windows) o ifconfig (Linux/Mac)
+    return 'http://10.0.2.2:8000';
+  } else if (Platform.OS === 'ios') {
+    // Para emulador iOS, localhost funciona directamente
+    return 'http://localhost:8000';
+  } else {
+    // Para web u otras plataformas
+    return 'http://localhost:8000';
+  }
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Log para debugging (solo en desarrollo)
+if (__DEV__) {
+  console.log('🌐 API Base URL:', API_BASE_URL);
+  console.log('📱 Platform:', Platform.OS);
+}
 
 // Crear instancia de axios
 const cliente = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json', 
   },
 });
 

@@ -1,5 +1,4 @@
 // server.js
-// server.js
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
@@ -10,27 +9,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ==================== CONFIGURACIÓN - LLAVE MAESTRA ====================
-// ⚠️ IMPORTANTE: Cambia esta llave maestra por una más segura en producción
-// Puedes usar: process.env.MASTER_KEY || 'tu-llave-secreta-aqui'
-const MASTER_KEY = process.env.MASTER_KEY || 'AGROCHOCO_2024_MASTER_KEY_SECRET';
-// ========================================================================
 
-// ==================== CONFIGURACIÓN - JWT ====================
-// ⚠️ IMPORTANTE: Esta clave secreta debe ser segura y única
-// Para generar una nueva clave secreta segura, ejecuta:
-// node -e "const crypto = require('crypto'); console.log(crypto.randomBytes(64).toString('base64url'));"
+
 const JWT_SECRET = process.env.JWT_SECRET || 'oZl2AafeMwghHKrILR4BImeFoJKYxW8CUKmcH2jbsTwDk22c_9mcV2JlptxkqNM3fTzfV8s_zwcRYXu-ohb4pg';
-const ALGORITMO = process.env.JWT_ALGORITMO || 'HS256'; // Algoritmo de firma
-const MINUTOS_EXPIRACION_TOKEN = process.env.JWT_EXPIRES_MINUTES || 60; // 600000 minutos (~416 días)
-const JWT_EXPIRES_IN = `${MINUTOS_EXPIRACION_TOKEN}m`; // Convertir minutos a formato de expiración
+const ALGORITMO = process.env.JWT_ALGORITMO || 'HS256'; 
+const MINUTOS_EXPIRACION_TOKEN = process.env.JWT_EXPIRES_MINUTES || 60; 
+const JWT_EXPIRES_IN = `${MINUTOS_EXPIRACION_TOKEN}m`; 
 // =============================================================
 
 // ==================== MIDDLEWARE DE AUTENTICACIÓN ====================
 // Middleware para verificar el token JWT en las peticiones protegidas
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1]; 
 
   if (!token) {
     return res.status(401).json({ message: "Token de acceso requerido" });
@@ -42,7 +33,7 @@ const authenticateToken = (req, res, next) => {
       return res.status(403).json({ message: "Token inválido o expirado" });
     }
     
-    req.user = user; // Agregar información del usuario al request
+    req.user = user; 
     next();
   });
 };
@@ -126,8 +117,7 @@ app.post("/login", (req, res) => {
       // Login exitoso - generar token JWT
       const { clave, ...usuarioSinClave } = usuario;
       
-      // Crear payload del token
-      // Normalizar el rol para compatibilidad con el frontend
+      
       let rolNormalizado = usuario.rol || null;
       if (rolNormalizado) {
         // Convertir nombres de roles a formato esperado por el frontend
@@ -189,20 +179,10 @@ app.post("/register", (req, res) => {
     }
 
     // Insertar nuevo usuario
-    // Por defecto el rol_id es NULL (se actualizará a 'Productor' si se registra como productor)
-    // Solo se asigna 'Administrador' si se proporciona la llave maestra correcta
+ 
     let rolId = null; // Por defecto es NULL
     
-    // Si se intenta crear un administrador, verificar primero
     if (rol && rol.toLowerCase() === 'administrador') {
-      // Verificar si se proporcionó la llave maestra correcta
-      if (!masterKey || masterKey !== MASTER_KEY) {
-        console.log('⚠️ Intento de crear administrador sin llave maestra válida');
-        return res.status(403).json({ 
-          message: "Se requiere llave maestra para crear un administrador" 
-        });
-      }
-      // Obtener el ID del rol Administrador
       db.query("SELECT id FROM roles WHERE nombre = 'Administrador'", (err, result) => {
         if (err) {
           console.error('❌ Error obteniendo rol Administrador:', err);
@@ -215,14 +195,12 @@ app.post("/register", (req, res) => {
         rolId = result[0].id;
         continuarRegistro(rolId);
       });
-      return; // Salir aquí para esperar la respuesta de la consulta
+      return; 
     }
     
-    // Si no es administrador, continuar con rol_id = NULL
     continuarRegistro(rolId);
     
     function continuarRegistro(rolIdFinal) {
-      // Hashear la contraseña antes de guardarla (10 rounds es un buen balance entre seguridad y rendimiento)
       bcrypt.hash(clave, 10, (hashErr, hashedPassword) => {
       if (hashErr) {
         console.error('❌ Error hasheando contraseña:', hashErr);
@@ -242,7 +220,6 @@ app.post("/register", (req, res) => {
         
         console.log('✅ Usuario creado:', nombre);
         
-        // Obtener el nombre del rol para el token
         let nombreRol = null;
         if (rolIdFinal) {
           db.query("SELECT nombre FROM roles WHERE id = ?", [rolIdFinal], (err, rolResult) => {
@@ -2241,7 +2218,9 @@ Object.keys(networkInterfaces).forEach(interfaceName => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀    Servidor ejecutándose en http://localhost:${PORT}`);
-  console.log(`📱 Usa esta dirección en tu app móvil: http://${localIP}:${PORT}`);
+  console.log(`📱 Para emulador/Android, usa: http://10.0.2.2:${PORT}`);
+  console.log(`📱 Para dispositivo físico, usa la IP de tu red: http://${localIP}:${PORT}`);
+  console.log(`📱 O configura en config/api.js: EXPO_PUBLIC_API_URL=http://${localIP}:${PORT}`);
   console.log(`\n🔑 LLAVE MAESTRA CONFIGURADA: ${MASTER_KEY.substring(0, 10)}...`);
   console.log(`   (Úsala para crear administradores o migrar usuarios)`);
   console.log(`\n🔐 JWT CONFIGURADO:`);

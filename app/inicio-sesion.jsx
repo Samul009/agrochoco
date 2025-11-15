@@ -1,8 +1,8 @@
 // inicio-sesion.jsx
 import React, { useState } from 'react';
 import { ScrollView, View, Alert, StyleSheet } from 'react-native';
-import { Text, TextInput, Button, PaperProvider, MD3LightTheme } from 'react-native-paper';
-import { useRouter, Stack } from 'expo-router';
+import { Text, TextInput, Button, useTheme } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS, apiRequest } from '../config/api';
 
@@ -12,6 +12,7 @@ export default function InicioSesion() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const theme = useTheme();
 
   // Validar datos de inicio de sesión con MySQL
   const validateLogin = async () => {
@@ -98,14 +99,7 @@ export default function InicioSesion() {
   };
 
   return (
-    <PaperProvider theme={MD3LightTheme}>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
-
-      <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.content}>
           <Text
             variant="headlineLarge"
@@ -172,7 +166,6 @@ export default function InicioSesion() {
           </Button>
         </View>
       </ScrollView>
-    </PaperProvider>
   );
 }
 
@@ -180,7 +173,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: MD3LightTheme.colors.background,
+    backgroundColor: '#fff',
   },
   content: {
     paddingHorizontal: 20,

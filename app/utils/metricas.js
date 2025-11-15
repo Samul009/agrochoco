@@ -2,8 +2,10 @@
 // Funciones para registrar actividad del usuario en la aplicación
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import API_BASE_URL from '../../config/api';
 
-const API_URL = 'http://192.168.1.12:3000/api'; // Cambiar por tu IP
+// Usar la configuración centralizada de la API
+const API_URL = `${API_BASE_URL}/api`;
 
 /**
  * Obtiene el ID del usuario logueado

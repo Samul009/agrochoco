@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 15-11-2025 a las 02:42:21
+-- Tiempo de generación: 15-11-2025 a las 13:41:30
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -230,7 +230,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `email`, `clave`, `telefono`, `direccion
 (2, 'Juan Pérez', 'juan@email.com', '$2b$10$guX.m2BkCrLhynh3Q13Vs.h1.ssHwaJ42klSwWLI.XgMnAhEDq73e', NULL, NULL, 3, '2025-11-04 19:40:19'),
 (3, 'María García', 'maria@email.com', '$2b$10$guX.m2BkCrLhynh3Q13Vs.h1.ssHwaJ42klSwWLI.XgMnAhEDq73e', NULL, NULL, NULL, '2025-11-04 19:40:19'),
 (4, 'Carlos Editor', 'carlos@email.com', '$2b$10$guX.m2BkCrLhynh3Q13Vs.h1.ssHwaJ42klSwWLI.XgMnAhEDq73e', NULL, NULL, 2, '2025-11-04 19:40:19'),
-(5, 'sa', 'sa@gmail.com', '$2b$10$9.3Rrq3OvKG956Y1nqikYepmwaJLeueCHAm.HRpD3jcOBuaRJPt2C', '12', 'sa', 3, '2025-11-15 01:12:33');
+(5, 'sa', 'sa@gmail.com', '$2b$10$9.3Rrq3OvKG956Y1nqikYepmwaJLeueCHAm.HRpD3jcOBuaRJPt2C', '12', 'sa', 1, '2025-11-15 01:12:33');
 
 --
 -- Índices para tablas volcadas

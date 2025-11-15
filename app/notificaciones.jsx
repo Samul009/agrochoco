@@ -28,10 +28,10 @@ export default function Notificaciones() {
     return true; // todas
   });
 
-  // Función para actualizar notificaciones en el componente padre
+
   const actualizarNotificacionesPadre = (nuevasNotificaciones) => {
     if (params.onNotificationsUpdate) {
-      // Si hay callback del padre, enviamos las notificaciones actualizadas
+      
       params.onNotificationsUpdate(nuevasNotificaciones);
     }
   };

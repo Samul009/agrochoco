@@ -4,7 +4,10 @@
     "plugins": [
       "expo-router"
     ],
-    "name": "MyApp",
-    "slug": "MyApp"
+    "name": "Agrochoco",
+    "slug": "MyApp",
+    "extra": {
+      "metroPort": 3000
+    }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "myapp",
+  "name": "Agrochoco",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -10,29 +10,29 @@
     "deploy": "npx expo export -p web && npx eas-cli@latest deploy"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "axios": "^1.13.2",
-    "expo": "^54.0.12",
-    "expo-apple-authentication": "~7.2.4",
-    "expo-auth-session": "~6.2.1",
-    "expo-constants": "~17.1.4",
+    "expo": "54.0.23",
+    "expo-apple-authentication": "~8.0.7",
+    "expo-auth-session": "~7.0.8",
+    "expo-constants": "~18.0.10",
     "expo-file-system": "~19.0.17",
     "expo-image-picker": "~17.0.8",
-    "expo-linking": "~7.1.7",
-    "expo-router": "~3.5.23",
+    "expo-linking": "~8.0.8",
+    "expo-router": "~6.0.14",
     "expo-sharing": "~14.0.7",
-    "expo-splash-screen": "~0.30.7",
-    "expo-status-bar": "~2.2.3",
+    "expo-splash-screen": "~31.0.10",
+    "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-native": "0.81.4",
+    "react-native": "0.81.5",
     "react-native-chart-kit": "^6.12.0",
-    "react-native-gesture-handler": "~2.15.0",
+    "react-native-gesture-handler": "~2.28.0",
     "react-native-paper": "^5.14.5",
     "react-native-safe-area-context": "^5.4.0",
-    "react-native-screens": "~4.11.1",
-    "react-native-svg": "^15.14.0",
-    "react-native-web": "^0.20.0"
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "react-native-web": "^0.21.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

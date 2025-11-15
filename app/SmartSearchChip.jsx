@@ -5,7 +5,7 @@ import { Chip, Portal, Modal, Text, Button, Divider } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 
 const SmartSearchChip = ({ 
-  screenType = "novedades", // "novedades", "productos", "rutas"
+  screenType = "novedades", 
   onFiltersApply,
   activeFilters = {},
   onClearFilters
