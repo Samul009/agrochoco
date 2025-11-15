@@ -25,6 +25,8 @@ export default function RootLayout() {
           <Stack.Screen name="mis-productos" options={{ headerShown: false }} />
           <Stack.Screen name="admin-panel" options={{ headerShown: false }} />
           <Stack.Screen name="admin-crud/[tabla]" options={{ headerShown: false }} />
+          <Stack.Screen name="cambiar-contrasena" options={{ headerShown: false }} />
+          <Stack.Screen name="ayuda-soporte" options={{ headerShown: false }} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

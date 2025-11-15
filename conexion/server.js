@@ -1603,6 +1603,77 @@ app.get("/novedad-lecturas", authenticateToken, (req, res) => {
   });
 });
 
+// Cambiar contraseña de usuario
+app.post("/usuarios/:id/cambiar-contrasena", authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { passwordActual, passwordNueva } = req.body;
+  const userId = req.user.uid; // ID del usuario del token JWT
+  
+  console.log(`🔐 Cambiando contraseña para usuario ${id}`);
+  
+  // Verificar que el usuario solo pueda cambiar su propia contraseña (a menos que sea admin)
+  if (parseInt(id) !== parseInt(userId)) {
+    return res.status(403).json({ message: "No puedes cambiar la contraseña de otro usuario" });
+  }
+  
+  if (!passwordActual || !passwordNueva) {
+    return res.status(400).json({ message: "Contraseña actual y nueva contraseña son requeridas" });
+  }
+  
+  if (passwordNueva.length < 6) {
+    return res.status(400).json({ message: "La nueva contraseña debe tener al menos 6 caracteres" });
+  }
+  
+  // Verificar contraseña actual
+  db.query("SELECT clave FROM usuarios WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error verificando contraseña:', err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+    
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+    
+    const hashedPassword = result[0].clave;
+    
+    // Verificar contraseña actual
+    bcrypt.compare(passwordActual, hashedPassword, (compareErr, isMatch) => {
+      if (compareErr) {
+        console.error('❌ Error comparando contraseña:', compareErr);
+        return res.status(500).json({ message: "Error en el servidor" });
+      }
+      
+      if (!isMatch) {
+        return res.status(401).json({ message: "La contraseña actual es incorrecta" });
+      }
+      
+      // Hashear nueva contraseña
+      bcrypt.hash(passwordNueva, 10, (hashErr, newHashedPassword) => {
+        if (hashErr) {
+          console.error('❌ Error hasheando nueva contraseña:', hashErr);
+          return res.status(500).json({ message: "Error en el servidor" });
+        }
+        
+        // Actualizar contraseña
+        db.query("UPDATE usuarios SET clave = ? WHERE id = ?", [newHashedPassword, id], (updateErr, updateResult) => {
+          if (updateErr) {
+            console.error('❌ Error actualizando contraseña:', updateErr);
+            return res.status(500).json({ message: "Error al actualizar contraseña" });
+          }
+          
+          if (updateResult.affectedRows === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+          }
+          
+          console.log('✅ Contraseña actualizada para usuario:', id);
+          res.json({ message: "Contraseña actualizada correctamente" });
+        });
+      });
+    });
+  });
+});
+
 // Eliminar usuario (solo para admin)
 app.delete("/usuarios/:id", authenticateToken, (req, res) => {
   const { id } = req.params;
@@ -2236,6 +2307,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`   GET    /usuarios`);
   console.log(`   GET    /usuarios/:id`);
   console.log(`   PUT    /usuarios/:id`);
+  console.log(`   POST   /usuarios/:id/cambiar-contrasena`);
   console.log(`   DELETE /usuarios/:id`);
   console.log(`\n📰 NOVEDADES:`);
   console.log(`   GET    /novedades`);

@@ -176,7 +176,7 @@ export default function Configuracion() {
             
             <List.Item
               title="Seguridad"
-              description="Configuración de seguridad"
+              description="Cambiar contraseña"
               titleStyle={styles.itemTitle}
               descriptionStyle={styles.itemDescription}
               left={props => (
@@ -185,16 +185,13 @@ export default function Configuracion() {
                 </View>
               )}
               right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
-              onPress={() => {
-                setMensaje("Tu cuenta está protegida con autenticación segura. Tu contraseña está encriptada.");
-                setVisible(true);
-              }}
+              onPress={() => router.push('/cambiar-contrasena')}
               style={styles.listItem}
             />
             
             <List.Item
               title="Ayuda y Soporte"
-              description="Obtén ayuda y soporte técnico"
+              description="Preguntas frecuentes y contacto"
               titleStyle={styles.itemTitle}
               descriptionStyle={styles.itemDescription}
               left={props => (
@@ -203,10 +200,7 @@ export default function Configuracion() {
                 </View>
               )}
               right={props => <Ionicons name="chevron-forward" size={20} color="#666" />}
-              onPress={() => {
-                setMensaje("Para ayuda, contacta al equipo de soporte en: soporte@agrochoco.com");
-                setVisible(true);
-              }}
+              onPress={() => router.push('/ayuda-soporte')}
               style={styles.listItem}
             />
           </List.Section>
