@@ -1,21 +1,60 @@
-# Expo Router Example
+# 🌱 Agrochoco
 
-Use [`expo-router`](https://docs.expo.dev/router/introduction/) to build native navigation using files in the `app/` directory.
+Aplicación móvil diseñada para conectar productores agrícolas de la región del Chocó con posibles compradores, facilitando la visibilidad de productos y la comunicación directa entre las partes.
 
-## 🚀 How to use
+---
 
-```sh
-npx create-expo-app -e with-router
-```
+## 🚀 Características
 
-## Deploy
+- 🌾 Visualización de productos agrícolas disponibles
+- 🧑‍🌾 Registro de productores locales
+- 🛒 Publicación de productos (precio, cantidad, descripción)
+- 💬 Comunicación entre compradores y proveedores
+- 📍 Enfoque en producción regional
 
-Deploy on all platforms with Expo Application Services (EAS).
+---
 
-- Deploy the website: `npx eas-cli deploy` — [Learn more](https://docs.expo.dev/eas/hosting/get-started/)
-- Deploy on iOS and Android using: `npx eas-cli build` — [Learn more](https://expo.dev/eas)
+## 🛠️ Tecnologías utilizadas
 
-## 📝 Notes
+- Frontend: React Native / Expo
+- Backend: (opcional si tienes API)
+- Base de datos: (Firebase / MySQL / etc)
+- Navegación móvil y componentes dinámicos
 
-- [Expo Router: Docs](https://docs.expo.dev/router/introduction/)
-# Aplicaciones-moviles-Taller_1
+---
+
+## ⚙️ Funcionalidades principales
+
+- Explorar productos disponibles en la región
+- Ver información detallada de cada producto
+- Contactar directamente al productor
+- Publicar nuevos productos (para vendedores)
+
+---
+
+## 🎯 Objetivo del proyecto
+
+Impulsar la economía local del Chocó mediante una plataforma digital que:
+- Mejore la visibilidad de los productos agrícolas
+- Facilite la conexión directa entre oferta y demanda
+- Reduzca intermediarios
+
+---
+
+## 📌 Estado del proyecto
+
+En desarrollo — enfocado en la interfaz móvil y funcionalidades principales.
+
+---
+
+## ⚠️ Nota
+
+Este proyecto es un prototipo académico con potencial de expansión a una solución real.
+
+---
+
+## 👨‍💻 Autores
+
+Gustavo Mena Palacios 
+Samuel Giron Heredia  
+Estudiantes de Ingeniería en Telecomunicaciones e Informática
